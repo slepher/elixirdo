@@ -1,12 +1,15 @@
   
 defmodule Elixirdo.Undetermined do
 
+  alias Elixirdo.Undetermined
+  alias Elixirdo.Typeclass
+
   defstruct [:typeclass, :inner_function]
 
   def new(f, typeclass) do
     case(Typeclass.is_typeclass(typeclass)) do
       true ->
-        %Elixirdo.Undetermined{typeclass: typeclass, inner_function: f}
+        %Undetermined{typeclass: typeclass, inner_function: f}
       false ->
         f.(typeclass)
     end

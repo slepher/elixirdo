@@ -1,5 +1,8 @@
 defmodule Elixirdo.Applicative do
 
+  alias Elixirdo.TypeclassTrans
+  alias Elixirdo.Undetermined
+
   def pure(a, uapplicative) do
     Undetermined.new(fn applicative -> TypeclassTrans.apply(:pure, [a], applicative, __MODULE__) end, uapplicative)
   end
@@ -27,7 +30,7 @@ defmodule Elixirdo.Applicative do
 
   def default_lift_a2(f, aA, aB, applicative) do
     nF = fn a -> fn b -> f.(a, b) end end
-    aF = :applicative.pure(nF, applicative)
+    aF = pure(nF, applicative)
     func_do____(func_do____(aF, aA, applicative), aB, applicative)
   end
 

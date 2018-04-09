@@ -1,5 +1,9 @@
 defmodule Elixirdo.Functor do
 
+  alias Elixirdo.Function
+  alias Elixirdo.Undetermined
+  alias Elixirdo.TypeclassTrans
+
   def fmap(f, ua, ufunctor) do
     Undetermined.map(fn functor, fa -> do_fmap(f, fa, functor) end, ua, ufunctor)
   end
@@ -13,7 +17,7 @@ defmodule Elixirdo.Functor do
   end
 
   def unquote(:"default_<$")(b, fa, functor) do
-    do_fmap(FunctionInstance.const(b), fa, functor)
+    do_fmap(Function.const(b), fa, functor)
   end
 
   defp do_fmap(f, fa, functor) do

@@ -1,5 +1,9 @@
 defmodule Elixirdo.Maybe do
 
+  alias Elixirdo.Applicative
+  alias Elixirdo.Monad
+  alias Elixirdo.Undetermined
+
   def fmap(f, {:just, x}) do
     {:just, f.(x)}
   end
@@ -29,15 +33,15 @@ defmodule Elixirdo.Maybe do
   end
 
   def lift_a2(f, ma, mb) do
-    :applicative.default_lift_a2(f, ma, mb, __MODULE__)
+    Applicative.default_lift_a2(f, ma, mb, __MODULE__)
   end
 
   def unquote(:"*>")(ma, mb) do
-    Kernel.apply(:applicative, :"default_*>", [ma, mb, __MODULE__])
+    Kernel.apply(Applicative, :"default_*>", [ma, mb, __MODULE__])
   end
 
   def unquote(:"<*")(ma, mb) do
-    Kernel.apply(:applicative, :"default_<*", [ma, mb, __MODULE__])
+    Kernel.apply(Applicative, :"default_<*", [ma, mb, __MODULE__])
   end
 
   def unquote(:">>=")({:just, x}, fun) do
@@ -53,7 +57,7 @@ defmodule Elixirdo.Maybe do
   end
 
   def return(a) do
-    :monad.default_return(a, __MODULE__)
+    Monad.default_return(a, __MODULE__)
   end
 
   def fail(_e) do

@@ -1,5 +1,7 @@
 defmodule Elixirdo.TypeclassTrans do
 
+  alias Elixirdo.Typeclass
+
   def apply(f, args, {t, m}, typeclass) do
     module = Typeclass.module(t, typeclass)
     Kernel.apply(module, f, args ++ [{t, m}])

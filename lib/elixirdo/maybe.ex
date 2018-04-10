@@ -4,11 +4,13 @@ defmodule Elixirdo.Maybe do
   alias Elixirdo.Monad
   alias Elixirdo.Undetermined
 
-  def fmap(f, {:just, x}) do
+  def fmap(f, ma), do: fmap(f, ma, :maybe)
+
+  def fmap(f, {:just, x}, :maybe) do
     {:just, f.(x)}
   end
 
-  def fmap(_f, :nothing) do
+  def fmap(_f, :nothing, :maybe) do
     :nothing
   end
 
@@ -16,7 +18,7 @@ defmodule Elixirdo.Maybe do
     Kernel.apply(:functor, :"default_<$", [b, ma, __MODULE__])
   end
 
-  def pure(a) do
+  def pure(a, _ \\ :maybe) do
     {:just, a}
   end
 
@@ -32,7 +34,7 @@ defmodule Elixirdo.Maybe do
     {:just, f.(a)}
   end
 
-  def lift_a2(f, ma, mb) do
+  def lift_a2(f, ma, mb, _ \\ :maybe) do
     Applicative.default_lift_a2(f, ma, mb, __MODULE__)
   end
 
@@ -56,15 +58,15 @@ defmodule Elixirdo.Maybe do
     Kernel.apply(:monad, :"default_>>", [ma, mb, __MODULE__])
   end
 
-  def return(a) do
+  def return(a, _ \\ :maybe) do
     Monad.default_return(a, __MODULE__)
   end
 
-  def fail(_e) do
+  def fail(_e, _ \\ :maybe) do
     :nothing
   end
 
-  def empty() do
+  def empty(_ \\ :maybe) do
     :nothing
   end
 
@@ -76,11 +78,11 @@ defmodule Elixirdo.Maybe do
     ma
   end
 
-  def mzero() do
-    empty()
+  def mzero(_ \\ :maybe) do
+    empty(:maybe)
   end
 
-  def mplus(ma, mb) do
+  def mplus(ma, mb, _ \\ :maybe) do
     Kernel.apply(__MODULE__, :<|>, [ma, mb])
   end
 

@@ -4,7 +4,7 @@ defmodule MaybeTest do
 
   test "greets the world" do
     f = fn a -> a * 2 end
-    assert {:just, 2} == Elixirdo.Functor.fmap({:just, 1}, f)
-    assert :nothing == Elixirdo.Functor.fmap(:nothing, f)
+    assert {:just, 2} == Elixirdo.Functor.fmap(f, {:just, 1})
+    assert :nothing == Elixirdo.Functor.fmap(f, :nothing)
   end
 end

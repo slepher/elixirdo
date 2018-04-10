@@ -8,6 +8,10 @@ defmodule Elixirdo.Typeclass do
     :maybe
   end
 
+  def type(%Elixirdo.MaybeT{}) do
+    :maybe_t
+  end
+
   def type(_type) do
     :undefined
   end
@@ -20,7 +24,7 @@ defmodule Elixirdo.Typeclass do
     true
   end
 
-  def is_typeclass(:monad) do 
+  def is_typeclass(:monad) do
     true
   end
 
@@ -37,6 +41,18 @@ defmodule Elixirdo.Typeclass do
   end
 
   def module(:maybe, :monad) do
+    Elixirdo.Maybe
+  end
+
+  def module(:maybe_t, :functor) do
+    Elixirdo.MaybeT
+  end
+
+  def module(:maybe_t, :applicative) do
+    Elixirdo.MaybeT
+  end
+
+  def module(:maybe_t, :monad) do
     Elixirdo.Maybe
   end
 

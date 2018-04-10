@@ -1,4 +1,4 @@
-  
+
 defmodule Elixirdo.Undetermined do
 
   alias Elixirdo.Undetermined
@@ -58,7 +58,6 @@ defmodule Elixirdo.Undetermined do
         f.(typeclass, m)
     end
   end
-
 
   def map_pair(f, %Elixirdo.Undetermined{} = ua, ub, typeclass) do
     Undetermined.map(fn module, b ->

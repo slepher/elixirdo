@@ -35,7 +35,7 @@ defmodule Elixirdo.Maybe do
   end
 
   def lift_a2(f, ma, mb, _ \\ :maybe) do
-    Applicative.default_lift_a2(f, ma, mb, __MODULE__)
+    Applicative.default_lift_a2(f, ma, mb, :maybe)
   end
 
   def unquote(:"*>")(ma, mb) do
@@ -46,11 +46,14 @@ defmodule Elixirdo.Maybe do
     Kernel.apply(Applicative, :"default_<*", [ma, mb, __MODULE__])
   end
 
-  def unquote(:">>=")({:just, x}, fun) do
+  def bind(ma, kmb), do: bind(ma, kmb, :maybe)
+
+
+  def bind({:just, x}, fun, :maybe) do
     fun.(x)
   end
 
-  def unquote(:">>=")(:nothing, _fun) do
+  def bind(:nothing, _fun, :maybe) do
     :nothing
   end
 

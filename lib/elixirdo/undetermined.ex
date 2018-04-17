@@ -1,6 +1,4 @@
-
 defmodule Elixirdo.Undetermined do
-
   alias Elixirdo.Undetermined
   alias Elixirdo.Typeclass
 
@@ -27,6 +25,7 @@ defmodule Elixirdo.Undetermined do
     case(Typeclass.is_typeclass(typeclass)) do
       true ->
         f.(typeclass, ua)
+
       false ->
         f.(typeclass, uf.(typeclass))
     end
@@ -36,41 +35,62 @@ defmodule Elixirdo.Undetermined do
     map(f, a, typeclass)
   end
 
-  def map(f, %Elixirdo.Undetermined{inner_function: uf}, typeclass) do
-    case(Typeclass.is_typeclass(typeclass)) do
-      true ->
-        new(fn module -> f.(module, uf.(module)) end, typeclass)
-      false ->
-        f.(typeclass, uf.(typeclass))
-    end
+  def map(f, value, typeclass) do
+    map(fn type, [new_value] ->
+      f.(type, new_value)
+    end, value, typeclass)
   end
 
-  def map(f, m, typeclass) do
-    case(Typeclass.is_typeclass(typeclass)) do
+  def map_list(f, values, typeclass) do
+    case Typeclass.is_typeclass(typeclass) do
       true ->
-        case(Typeclass.type(m)) do
-          :undefined ->
-            new(fn type -> f.(type, m) end, typeclass)
-          type ->
-            f.(type, m)
-        end
+        do_map(f, values, typeclass, values)
       false ->
-        f.(typeclass, m)
-    end
+        f.(typeclass, map_type(typeclass, values))
+      end
+  end
+
+  def do_map(f, [%Elixirdo.Undetermined{}], typeclass, values) do
+    new(
+      fn type ->
+        map(f, values, type)
+      end,
+      typeclass
+    )
+  end
+
+  def do_map(f, [%Elixirdo.Undetermined{} | t], typeclass, values) do
+    do_map(f, t, typeclass, values)
+  end
+
+  def do_map(f, [a | _t], _typeclass, values) do
+    type = Typeclass.type(a)
+    f.(type, map_type(type, values))
+  end
+
+  def map_type(type, values) do
+    Enum.map(values, fn value -> run(value, type) end)
   end
 
   def map_pair(f, %Elixirdo.Undetermined{} = ua, ub, typeclass) do
-    Undetermined.map(fn module, b ->
-      a = run(ua, module)
-      f.(module, a, b)
-    end, ub, typeclass)
+    Undetermined.map(
+      fn module, b ->
+        a = run(ua, module)
+        f.(module, a, b)
+      end,
+      ub,
+      typeclass
+    )
   end
 
   def map_pair(f, ua, ub, typeclass) do
-    Undetermined.map(fn module, a ->
-      b = run(ub, module)
-      f.(module, a, b)
-    end, ua, typeclass)
+    Undetermined.map(
+      fn module, a ->
+        b = run(ub, module)
+        f.(module, a, b)
+      end,
+      ua,
+      typeclass
+    )
   end
-
 end

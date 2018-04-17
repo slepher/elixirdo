@@ -53,7 +53,11 @@ defmodule Elixirdo.Typeclass do
   end
 
   def module(:maybe_t, :monad) do
-    Elixirdo.Maybe
+    Elixirdo.MaybeT
+  end
+
+  def module(:maybe_t, :monad_trans) do
+    Elixirdo.MaybeT
   end
 
   def module(type, typeclass) do

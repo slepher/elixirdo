@@ -4,7 +4,9 @@ defmodule Elixirdo.Maybe do
   alias Elixirdo.Monad
   alias Elixirdo.Undetermined
 
-  def fmap(f, ma), do: fmap(f, ma, :maybe)
+  def fmap(f, {:just, x}) do
+    {:just, f.(x)}
+  end
 
   def fmap(f, {:just, x}, :maybe) do
     {:just, f.(x)}

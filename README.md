@@ -50,7 +50,10 @@ be found at [https://hexdocs.pm/elixirdo](https://hexdocs.pm/elixirdo).
   applicative:ap(applicativeA, applicativeB)
   type could be determined by applicativeA or applicativeB
   if both of then is undetermined typeclass instances, returns undetermined typeclass instance
-
+  monad:bind(monadA, fun(A) -> monadB end)
+  type cloud not be determined by monadB in fun(A) -> monadB end
+  could only be determined by monadA
+  
 ## default impl
 
 ## user def operator

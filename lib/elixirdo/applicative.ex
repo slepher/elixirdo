@@ -1,18 +1,18 @@
 defmodule Elixirdo.Applicative do
 
-  alias Elixirdo.TypeclassTrans
   alias Elixirdo.Undetermined
+  alias Elixirdo.Typeclass.Generated
 
-  def pure(a, uapplicative \\ :applicative) do
+  def pure(a, uapplicative) do
     Undetermined.new(fn applicative -> do_pure(a, applicative) end, uapplicative)
   end
 
-  def lift_a2(f, ua, ub, uapplicative \\ :applicative) do
-    Undetermined.map_pair(fn applicative, aa, ab -> do_lift_a2(f, aa, ab, applicative) end, ua, ub, uapplicative)
+  def lift_a2(f, ua, ub, uapplicative) do
+    Undetermined.map_list(fn applicative, [aa, ab] -> do_lift_a2(f, aa, ab, applicative) end, [ua, ub], uapplicative)
   end
 
-  def ap(uf, ua, uapplicative \\ :applicative) do
-    Undetermined.map_pair(fn applicative, af, aa -> do_ap(af, aa, applicative) end, uf, ua, uapplicative)
+  def ap(uf, ua, uapplicative) do
+    Undetermined.map_list(fn applicative, [af, aa] -> do_ap(af, aa, applicative) end, [uf, ua], uapplicative)
   end
 
   def default_lift_a2(f, aa, ab, applicative) do
@@ -27,15 +27,18 @@ defmodule Elixirdo.Applicative do
   end
 
   defp do_pure(a, applicative) do
-    TypeclassTrans.apply(:pure, [a], applicative, :applicative)
+    module = Generated.module(applicative, :applicative)
+    module.pure(a, applicative)
   end
 
   defp do_ap(af, aa, applicative) do
-    TypeclassTrans.apply(:ap, [af, aa], applicative, :applicative)
+    module = Generated.module(applicative, :applicative)
+    module.ap(af, aa, applicative)
   end
 
   defp do_lift_a2(f, aa, ab, applicative) do
-    TypeclassTrans.apply(:lift_a2, [f, aa, ab], applicative, :applicative)
+    module = Generated.module(applicative, :applicative)
+    module.lift_a2(f, aa, ab, applicative)
   end
 
 end

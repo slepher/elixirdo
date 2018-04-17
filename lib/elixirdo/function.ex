@@ -3,7 +3,7 @@ defmodule Elixirdo.Function do
   alias Elixirdo.Functor
   alias Elixirdo.Applicative
   alias Elixirdo.Monad
-  
+
   def fmap(f, fa) do
     Kernel.apply(__MODULE__, :., [f, fa])
   end
@@ -78,6 +78,10 @@ defmodule Elixirdo.Function do
 
   def id(a) do
     a
+  end
+
+  def compose(f, g) do
+    fn x -> f.(g.(x)) end
   end
 
 end

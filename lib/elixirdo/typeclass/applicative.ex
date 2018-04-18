@@ -1,18 +1,18 @@
-defmodule Elixirdo.Applicative do
+defmodule Elixirdo.Typeclass.Applicative do
 
-  alias Elixirdo.Undetermined
-  alias Elixirdo.Typeclass.Generated
+  alias Elixirdo.Base.Undetermined
+  alias Elixirdo.Base.Generated
 
-  def pure(a, uapplicative) do
+  def pure(a, uapplicative \\ :applicative) do
     Undetermined.new(fn applicative -> do_pure(a, applicative) end, uapplicative)
   end
 
-  def lift_a2(f, ua, ub, uapplicative) do
-    Undetermined.map_list(fn applicative, [aa, ab] -> do_lift_a2(f, aa, ab, applicative) end, [ua, ub], uapplicative)
+  def lift_a2(f, ua, ub, uapplicative \\ :applicative) do
+    Undetermined.map_list(fn [aa, ab], applicative -> do_lift_a2(f, aa, ab, applicative) end, [ua, ub], uapplicative)
   end
 
-  def ap(uf, ua, uapplicative) do
-    Undetermined.map_list(fn applicative, [af, aa] -> do_ap(af, aa, applicative) end, [uf, ua], uapplicative)
+  def ap(uf, ua, uapplicative \\ :applicative) do
+    Undetermined.map_list(fn [af, aa], applicative -> do_ap(af, aa, applicative) end, [uf, ua], uapplicative)
   end
 
   def default_lift_a2(f, aa, ab, applicative) do

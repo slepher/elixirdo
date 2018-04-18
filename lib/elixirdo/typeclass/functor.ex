@@ -1,6 +1,6 @@
-defmodule Elixirdo.Functor do
-  alias Elixirdo.Undetermined
-  alias Elixirdo.Typeclass.Generated
+defmodule Elixirdo.Typeclass.Functor do
+  alias Elixirdo.Base.Undetermined
+  alias Elixirdo.Base.Generated
 
   @type t :: any()
 
@@ -11,11 +11,11 @@ defmodule Elixirdo.Functor do
 
   @spec fmap(t(), (any() -> any()), any()) :: t()
   def fmap(f, ua, ufunctor) do
-    Undetermined.map(fn functor, fa -> do_fmap(f, fa, functor) end, ua, ufunctor)
+    Undetermined.map(fn fa, functor -> do_fmap(f, fa, functor) end, ua, ufunctor)
   end
 
   defp do_fmap(f, fa, functor) do
     module = Generated.module(functor, :functor)
-    module.fmap(f, fa, %{:functor => functor})
+    module.fmap(f, fa, functor)
   end
 end

@@ -1,6 +1,6 @@
 defmodule Elixirdo.MaybeT do
-  alias Elixirdo.Functor
-  alias Elixirdo.Monad
+  alias Elixirdo.Typeclass.Functor
+  alias Elixirdo.Typeclass.Monad
 
   defstruct [:data]
 

@@ -1,8 +1,8 @@
 defmodule Elixirdo.Maybe do
 
-  alias Elixirdo.Applicative
-  alias Elixirdo.Monad
-  alias Elixirdo.Undetermined
+  alias Elixirdo.Typeclass.Applicative
+  alias Elixirdo.Typeclass.Monad
+  alias Elixirdo.Base.Undetermined
 
   def fmap(f, {:just, x}) do
     {:just, f.(x)}
@@ -99,8 +99,8 @@ defmodule Elixirdo.Maybe do
     mA
   end
 
-  def run(%Elixirdo.Undetermined{} = ua) do
-    Undetermined.run(ua, __MODULE__)
+  def run(%Undetermined{} = ua) do
+    Undetermined.run(ua, :maybe)
   end
 
   def run(maybe) do

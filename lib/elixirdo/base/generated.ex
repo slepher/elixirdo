@@ -1,4 +1,4 @@
-defmodule Elixirdo.Typeclass.Generated do
+defmodule Elixirdo.Base.Generated do
 
   def type({:just, _a}) do
     :maybe

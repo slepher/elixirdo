@@ -1,4 +1,4 @@
-defmodule Elixirdo.TypeclassRegister do
+defmodule Elixirdo.Base.Register do
 
   require Record
 

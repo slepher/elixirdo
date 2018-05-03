@@ -1,5 +1,4 @@
 defmodule Elixirdo.Base.Class do
-
   defmacro __used__(_) do
     quote do
       import Elixirdo.Base.Class, only: [defclass: 2]
@@ -12,59 +11,75 @@ defmodule Elixirdo.Base.Class do
     nil
   end
 
+  defmacro put_word(word) do
+    IO.puts(word)
+    nil
+  end
+
+  def parse_block(block) do
+    IO.inspect(block)
+    nil
+  end
+
   defmacro defclass(name, do: block) do
     class_attr = parse_class(name)
     [class: class_name, class_param: class_param, extends: _extends] = class_attr
 
     quote do
-      defmodule Class do
-        import Kernel, except: [def: 1, def: 2, defp: 1, defp: 2]
-        import Elixirdo.Base.Class, only: [def: 1, def: 2, def: 3]
-        # why use macro?
-        # let Module.put_attribute evaluate before block
-        # it returns nil so expands nothing
-        Elixirdo.Base.Class.set_attribute(:class_name, unquote(class_name))
-        Elixirdo.Base.Class.set_attribute(:class_param, unquote(class_param))
-
-        unquote(block)
-      end
+      import Elixirdo.Base.Class, only: [defi: 1, defi: 2, defi: 3]
+      # why use macro?
+      # let Module.put_attribute evaluate before block
+      # it returns nil so expands nothing
+      Elixirdo.Base.Class.set_attribute(:class_name, unquote(class_name))
+      Elixirdo.Base.Class.set_attribute(:class_param, unquote(class_param))
+      unquote(block)
     end
   end
 
-  defmacro def(params) do
+  defmacro defi(params) do
     class_def(params, [], nil, __CALLER__.module)
   end
 
-  defmacro def(params, do: block) do
+  defmacro defi(params, do: block) do
     class_def(params, [], block, __CALLER__.module)
   end
 
-  defmacro def(params, opts) do
+  defmacro defi(params, opts) do
     {block, new_opts} = Keyword.pop(opts, :do, nil)
     class_def(params, new_opts, block, __CALLER__.module)
   end
 
-  defmacro def(params, opts, do: block) do
+  defmacro defi(params, opts, do: block) do
     class_def(params, opts, block, __CALLER__.module)
   end
 
   def class_def(params, _opts, block, module) do
-    class_name = Module.get_attribute(module, :class_name)
-    class_param = Module.get_attribute(module, :class_param)
 
-
-
-    def_opts =
+    def_spec =
       if block do
         parse_def(params, true)
       else
         parse_def(params, false)
       end
 
-    IO.inspect(def_opts ++ [class_name: class_name, class_param: class_param])
+    IO.inspect(def_spec)
+    run_def_spec(def_spec, module)
+  end
+
+  defmacro run_def_specs() do
+    module = __CALLER__.module
+    def_specs = Module.get_attribute(module, :def_specs, [])
+    def_specs = :lists.reverse(def_specs)
+    IO.inspect(def_specs)
+    :lists.map(fn def_spec -> run_def_spec(def_spec, module) end, def_specs)
+  end
+
+  def run_def_spec(def_spec, module) do
+    class_name = Module.get_attribute(module, :class_name)
+    class_param = Module.get_attribute(module, :class_param)
 
     [name, type_params, _return_type] =
-      Keyword.values(Keyword.take(def_opts, [:name, :type_params, :return_type]))
+      Keyword.values(Keyword.take(def_spec, [:name, :type_params, :return_type]))
 
     arity = length(type_params)
 
@@ -72,16 +87,20 @@ defmodule Elixirdo.Base.Class do
     u_params = :lists.map(var_fn(module, "uvar"), m_arities)
     t_params = :lists.map(var_fn(module, "var"), m_arities)
     params = :lists.map(var_fn(module, "var"), :lists.seq(1, arity))
+
     pos_name = fn pos ->
       case :lists.member(pos, m_arities) do
         true ->
           "uvar"
+
         false ->
           "var"
       end
     end
 
-    out_params = :lists.map(var_fn(module, pos_name), :lists.seq(1, arity)) ++ [quote(do: class_param \\ unquote(class_name))]
+    out_params =
+      :lists.map(var_fn(module, pos_name), :lists.seq(1, arity)) ++
+        [quote(do: class_param \\ unquote(class_name))]
 
     # IO.inspect(opts)
 
@@ -92,7 +111,8 @@ defmodule Elixirdo.Base.Class do
             module = Elixirdo.Base.Generated.module(class_type, unquote(class_name))
             module.unquote(name)(unquote_splicing(params))
           end,
-          [unquote_splicing(u_params)], class_param
+          [unquote_splicing(u_params)],
+          class_param
         )
       end
     end

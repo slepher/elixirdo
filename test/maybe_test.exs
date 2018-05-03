@@ -15,7 +15,7 @@ defmodule MaybeTest do
   @tag timeout: 1000
   test "ap" do
     mtf = {:just, fn a -> a * 2 end}
-    mta = Applicative.Class.pure(1)
+    mta = Applicative.pure(1)
     mtb = {:just, 2}
     assert mtb == Applicative.ap(mtf, mta)
   end

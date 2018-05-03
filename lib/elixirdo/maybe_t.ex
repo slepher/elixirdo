@@ -8,7 +8,7 @@ defmodule Elixirdo.MaybeT do
     map(fn ma -> Functor.fmap(fn maybe_a -> Functor.fmap(f, maybe_a) end, ma) end, mta)
   end
 
-  def ap(mtf, mta, _) do
+  def ap(mtf, mta) do
     maybe_t(
       Monad.bind(run_maybe_t(mtf),
       fn maybe_f ->

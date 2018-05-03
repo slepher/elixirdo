@@ -1,10 +1,10 @@
 defmodule Elixirdo.Prism do
-  alias Elixirdo.Functor
-  alias Elixirdo.Applicative
+  alias Elixirdo.Typeclass.Functor
+  alias Elixirdo.Typeclass.Applicative
+  alias Elixirdo.Typeclass.Profunctor
+  alias Elixirdo.Typeclass.Choice
   alias Elixirdo.Function
-  alias Elixirdo.Profunctor
   alias Elixirdo.Either
-  alias Elixirdo.Choice
 
   def prism(bt, s_either_ta) do
     #  functor:fmap(BT) :: f b -> f t
@@ -17,12 +17,11 @@ defmodule Elixirdo.Prism do
     Function.compose(
       Profunctor.dimap(
         s_either_ta,
-        Either.either(fn a -> Applicative.pure(a, :applicative) end, fn fa ->
-          Functor.fmap(bt, fa, :functor)
-        end),
-        :profunctor
+        Either.either(fn a -> Applicative.pure(a) end, fn fa ->
+          Functor.fmap(bt, fa)
+        end)
       ),
-      fn c -> Choice.right(c, :choice) end
+      fn c -> Choice.right(c) end
     )
   end
 end

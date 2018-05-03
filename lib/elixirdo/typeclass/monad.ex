@@ -1,8 +1,9 @@
 defmodule Elixirdo.Typeclass.Monad do
 
-  alias Elixirdo.Applicative
   alias Elixirdo.Base.Undetermined
   alias Elixirdo.Base.Generated
+  alias Elixirdo.Typeclass.Applicative
+
 
   def bind(ua, kub, umonad \\ :monad) do
     Undetermined.map(fn ma, monad ->

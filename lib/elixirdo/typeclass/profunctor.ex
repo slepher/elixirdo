@@ -1,8 +1,8 @@
-defmodule Elixirdo.Profunctor do
-  alias Elixirdo.Undetermined
-  alias Elixirdo.Typeclass.Generated
+defmodule Elixirdo.Typeclass.Profunctor do
+  alias Elixirdo.Base.Undetermined
+  alias Elixirdo.Base.Generated
 
-  def dimap(ab, cd, uprofunctor) do
+  def dimap(ab, cd, uprofunctor \\ :profunctor) do
     fn ubc ->
       Undetermined.map(
         fn profunctor, profunctor_bc ->

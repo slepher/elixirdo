@@ -12,6 +12,10 @@ defmodule Elixirdo.Base.Generated do
     :maybe_t
   end
 
+  def type(function) when is_function(function) do
+    :function
+  end
+
   def type(_type) do
     :undefined
   end
@@ -30,6 +34,14 @@ defmodule Elixirdo.Base.Generated do
 
   def is_typeclass(_a) do
     false
+  end
+
+  def module(:function, :functor) do
+    Elixirdo.Function
+  end
+
+  def module(:function, :applicative) do
+    Elixirdo.Function
   end
 
   def module(:maybe, :functor) do

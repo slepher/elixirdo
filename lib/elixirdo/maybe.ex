@@ -1,43 +1,53 @@
 defmodule Elixirdo.Maybe do
-
   alias Elixirdo.Typeclass.Applicative
   alias Elixirdo.Typeclass.Monad
   alias Elixirdo.Base.Undetermined
 
-  def fmap(f, {:just, x}) do
-    {:just, f.(x)}
+  import Elixirdo.Base.Instance, only: :macros
+
+  @type t() :: {:just, any()} | :nothing
+
+  @p_type :maybe
+
+  definstance :functor, for: :maybe do
+
+    def fmap(f, maybe, :maybe) do
+      fmap(f, maybe)
+    end
+
+    def fmap(f, {:just, x}) do
+      {:just, f.(x)}
+    end
+
+    def fmap(_f, :nothing) do
+      :nothing
+    end
   end
 
-  def fmap(f, {:just, x}, :maybe) do
-    {:just, f.(x)}
-  end
+  definstance :applicative, for: :maybe do
+    def pure(a) do
+      {:just, a}
+    end
 
-  def fmap(_f, :nothing, :maybe) do
-    :nothing
+    def ap(:nothing, _) do
+      :nothing
+    end
+
+    def ap(_, :nothing) do
+      :nothing
+    end
+
+    def ap({:just, f}, {:just, a}) do
+      {:just, f.(a)}
+    end
   end
 
   def unquote(:"<$")(b, ma) do
     Kernel.apply(:functor, :"default_<$", [b, ma, __MODULE__])
   end
 
-  def pure(a, _ \\ :maybe) do
-    {:just, a}
-  end
-
-  def unquote(:"<*>")(:nothing, _) do
-    :nothing
-  end
-
-  def unquote(:"<*>")(_, :nothing) do
-    :nothing
-  end
-
-  def unquote(:"<*>")({:just, f}, {:just, a}) do
-    {:just, f.(a)}
-  end
-
-  def lift_a2(f, ma, mb, _ \\ :maybe) do
-    Applicative.default_lift_a2(f, ma, mb, :maybe)
+  def lift_a2(f, ma, mb, _ \\ @p_type) do
+    Applicative.default_lift_a2(f, ma, mb, @p_type)
   end
 
   def unquote(:"*>")(ma, mb) do
@@ -49,7 +59,6 @@ defmodule Elixirdo.Maybe do
   end
 
   def bind(ma, kmb), do: bind(ma, kmb, :maybe)
-
 
   def bind({:just, x}, fun, :maybe) do
     fun.(x)
@@ -106,5 +115,4 @@ defmodule Elixirdo.Maybe do
   def run(maybe) do
     maybe
   end
-
 end

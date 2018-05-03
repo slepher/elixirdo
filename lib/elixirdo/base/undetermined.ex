@@ -48,6 +48,11 @@ defmodule Elixirdo.Base.Undetermined do
     end
   end
 
+  def map_list(f, [], typeclass) do
+    nf = fn type -> f.([], type) end
+    new(nf, typeclass)
+  end
+
   def map_list(f, values, typeclass) do
     case Generated.is_typeclass(typeclass) do
       true ->

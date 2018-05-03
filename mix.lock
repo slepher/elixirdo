@@ -1,4 +1,5 @@
 %{
   "exceptional": {:hex, :exceptional, "2.1.0", "b3bc6c7041a242df9f7e18223649f3d66633827897138cf5f26c46c88b6925ae", [:mix], [], "hexpm"},
+  "mex": {:hex, :mex, "0.0.5", "027ae4cfb8b2886a67583dfabb7905b8481fe8d50c22c2137a0e378a54e0e3ec", [:mix], [], "hexpm"},
   "type_class": {:hex, :type_class, "1.2.2", "a84cab53b80e7c3c15f5ba9a550f5c68646c2b965d19f711f37473803d1ec2ff", [:mix], [{:exceptional, "~> 2.1", [hex: :exceptional, repo: "hexpm", optional: false]}], "hexpm"},
 }

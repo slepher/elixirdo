@@ -1,8 +1,8 @@
 defmodule Elixirdo.Function do
 
-  alias Elixirdo.Functor
-  alias Elixirdo.Applicative
-  alias Elixirdo.Monad
+  alias Elixirdo.Typeclass.Functor
+  alias Elixirdo.Typeclass.Applicative
+  alias Elixirdo.Typeclass.Monad
 
   def fmap(f, fa) do
     Kernel.apply(__MODULE__, :., [f, fa])
@@ -21,7 +21,7 @@ defmodule Elixirdo.Function do
   end
 
   def lift_a2(f, fa, fb) do
-    Applicative.default_lift_a2(f, fa, fb, __MODULE__)
+    Applicative.default_lift_a2(f, fa, fb, :function)
   end
 
   def unquote(:"*>")(fa, fb) do

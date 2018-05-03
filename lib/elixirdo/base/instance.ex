@@ -1,44 +1,27 @@
-defmodule Elixirdo.Typeclass.Instance do
-  defmacro def(signature)
-
-  defmacro def({_, _, args}) when args == [] or is_atom(args) do
-    raise ArgumentError, "protocol functions expect at least one argument"
-  end
-
-  defmacro def({name, _, args}) when is_atom(name) and is_list(args) do
-    arity = length(args)
-
-    type_args = :lists.map(fn _ -> quote(do: term) end, :lists.seq(2, arity))
-    type_args = [quote(do: t) | type_args]
-
-    varify = fn pos -> Macro.var(String.to_atom("var" <> Integer.to_string(pos)), __MODULE__) end
-
-    call_args = :lists.map(varify, :lists.seq(2, arity))
-    call_args = [quote(do: term) | call_args]
-
+defmodule Elixirdo.Base.Instance do
+  defmacro __using__(_options) do
     quote do
-      name = unquote(name)
-      arity = unquote(arity)
-
-      @functions [{name, arity} | @functions]
-
-      # Generate a fake definition with the user
-      # signature that will be used by docs
-      Kernel.def(unquote(name)(unquote_splicing(args)))
-
-      # Generate the actual implementation
-      Kernel.def unquote(name)(unquote_splicing(call_args)) do
-        impl_for!(term).unquote(name)(unquote_splicing(call_args))
-      end
-
-      # Convert the spec to callback if possible,
-      # otherwise generate a dummy callback
-      Module.spec_to_callback(__MODULE__, {name, arity}) ||
-        @callback unquote(name)(unquote_splicing(type_args)) :: term
+      import Elixirdo.Base.Instance, only: :macros
     end
   end
 
-  defmacro def(_) do
-    raise ArgumentError, "invalid arguments for def inside defprotocol"
+  defmacro definstance(name, opts, do_block) do
+    merged = Keyword.merge(opts, do_block)
+    merged = Keyword.put_new(merged, :for, __CALLER__.module)
+    __instance__(name, :lists.keysort(1, merged))
+  end
+
+  def __instance__(class, do: block, for: type) do
+    quote do
+      class = unquote(class)
+      type = unquote(type)
+
+      Module.register_attribute(__MODULE__, :idefs, accumulate: true)
+
+      unquote(block)
+
+      Module.register_attribute(__MODULE__, :p_class_instance, accumulate: true, persist: true)
+      @p_class_instance [class: class, instance: type]
+    end
   end
 end

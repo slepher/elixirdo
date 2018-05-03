@@ -1,44 +1,26 @@
 defmodule Elixirdo.Typeclass.Applicative do
 
-  alias Elixirdo.Base.Undetermined
-  alias Elixirdo.Base.Generated
+  import Elixirdo.Base.Class, only: [defclass: 2]
 
-  def pure(a, uapplicative \\ :applicative) do
-    Undetermined.new(fn applicative -> do_pure(a, applicative) end, uapplicative)
+  defclass applicative f, f: functor do
+    def pure(a) :: f(a)
+
+    def ap(f(a ~> b), f(a)) :: f(b)
+
+    def lift_a2(ab_c: a.b ~> c, applicative_a: f(a), applicative_b: f(b)) :: f(c) do
+      a_b_c = fn a -> fn b -> ab_c.(a, b) end end
+      applicative_f = pure(a_b_c, f)
+      f.ap(f.ap(applicative_f, applicative_a), applicative_b)
+    end
   end
 
-  def lift_a2(f, ua, ub, uapplicative \\ :applicative) do
-    Undetermined.map_list(fn [aa, ab], applicative -> do_lift_a2(f, aa, ab, applicative) end, [ua, ub], uapplicative)
-  end
-
-  def ap(uf, ua, uapplicative \\ :applicative) do
-    Undetermined.map_list(fn [af, aa], applicative -> do_ap(af, aa, applicative) end, [uf, ua], uapplicative)
-  end
-
-  def default_lift_a2(f, aa, ab, applicative) do
-    nf = fn a -> fn b -> f.(a, b) end end
-    af = pure(nf, applicative)
-    do_ap(do_ap(af, aa, applicative), ab, applicative)
+  def ap(fa , fb, f \\ :applicative) do
+    Class.ap(fa, fb, f)
   end
 
   def lift_a3(f, aa, ab, ac, applicative) do
     nf = fn a -> fn b -> fn c -> f.(a, b, c) end end end
-    ap(lift_a2(nf, aa, ab, applicative), ac, applicative)
-  end
-
-  defp do_pure(a, applicative) do
-    module = Generated.module(applicative, :applicative)
-    module.pure(a, applicative)
-  end
-
-  defp do_ap(af, aa, applicative) do
-    module = Generated.module(applicative, :applicative)
-    module.ap(af, aa, applicative)
-  end
-
-  defp do_lift_a2(f, aa, ab, applicative) do
-    module = Generated.module(applicative, :applicative)
-    module.lift_a2(f, aa, ab, applicative)
+    Class.ap(Class.lift_a2(nf, aa, ab, applicative), ac, applicative)
   end
 
 end

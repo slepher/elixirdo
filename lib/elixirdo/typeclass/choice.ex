@@ -1,8 +1,8 @@
-defmodule Elixirdo.Choice do
-  alias Elixirdo.Undetermined
-  alias Elixirdo.Typeclass.Generated
+defmodule Elixirdo.Typeclass.Choice do
+  alias Elixirdo.Base.Undetermined
+  alias Elixirdo.Base.Generated
 
-  def right(uab, uchoice) do
+  def right(uab, uchoice \\ :choice) do
     Undetermined.map(
       fn choice, pab ->
         do_right(pab, choice)

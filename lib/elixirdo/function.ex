@@ -20,10 +20,6 @@ defmodule Elixirdo.Function do
     const(a)
   end
 
-  def lift_a2(f, fa, fb) do
-    Applicative.default_lift_a2(f, fa, fb, :function)
-  end
-
   def unquote(:"*>")(fa, fb) do
     Kernel.apply(Applicative, :"default_*>", [fa, fb, :function])
   end

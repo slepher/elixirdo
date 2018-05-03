@@ -1,37 +1,19 @@
 defmodule Elixirdo.Base.Class do
-  defmacro __used__(_) do
-    quote do
-      import Elixirdo.Base.Class, only: [defclass: 2]
-    end
-  end
-
-  defmacro set_attribute(key, value) do
-    module = __CALLER__.module
-    Module.put_attribute(module, key, value)
-    nil
-  end
-
-  defmacro put_word(word) do
-    IO.puts(word)
-    nil
-  end
-
-  def parse_block(block) do
-    IO.inspect(block)
-    nil
-  end
 
   defmacro defclass(name, do: block) do
     class_attr = parse_class(name)
     [class: class_name, class_param: class_param, extends: _extends] = class_attr
+    block = Elixirdo.Base.Utils.rename_macro(:def, :defi, block)
 
     quote do
       import Elixirdo.Base.Class, only: [defi: 1, defi: 2, defi: 3]
+      import Elixirdo.Base.Utils, only: [set_attribute: 2]
+
       # why use macro?
       # let Module.put_attribute evaluate before block
       # it returns nil so expands nothing
-      Elixirdo.Base.Class.set_attribute(:class_name, unquote(class_name))
-      Elixirdo.Base.Class.set_attribute(:class_param, unquote(class_param))
+      set_attribute(:class_name, unquote(class_name))
+      set_attribute(:class_param, unquote(class_param))
       unquote(block)
     end
   end
@@ -54,24 +36,13 @@ defmodule Elixirdo.Base.Class do
   end
 
   def class_def(params, _opts, block, module) do
-
     def_spec =
       if block do
         parse_def(params, true)
       else
         parse_def(params, false)
       end
-
-    IO.inspect(def_spec)
     run_def_spec(def_spec, module)
-  end
-
-  defmacro run_def_specs() do
-    module = __CALLER__.module
-    def_specs = Module.get_attribute(module, :def_specs, [])
-    def_specs = :lists.reverse(def_specs)
-    IO.inspect(def_specs)
-    :lists.map(fn def_spec -> run_def_spec(def_spec, module) end, def_specs)
   end
 
   def run_def_spec(def_spec, module) do
@@ -92,7 +63,6 @@ defmodule Elixirdo.Base.Class do
       case :lists.member(pos, m_arities) do
         true ->
           "uvar"
-
         false ->
           "var"
       end
@@ -101,8 +71,6 @@ defmodule Elixirdo.Base.Class do
     out_params =
       :lists.map(var_fn(module, pos_name), :lists.seq(1, arity)) ++
         [quote(do: class_param \\ unquote(class_name))]
-
-    # IO.inspect(opts)
 
     quote do
       Kernel.def unquote(name)(unquote_splicing(out_params)) do

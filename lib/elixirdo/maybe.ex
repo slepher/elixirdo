@@ -46,10 +46,6 @@ defmodule Elixirdo.Maybe do
     Kernel.apply(:functor, :"default_<$", [b, ma, __MODULE__])
   end
 
-  def lift_a2(f, ma, mb, _ \\ @p_type) do
-    Applicative.default_lift_a2(f, ma, mb, @p_type)
-  end
-
   def unquote(:"*>")(ma, mb) do
     Kernel.apply(Applicative, :"default_*>", [ma, mb, __MODULE__])
   end

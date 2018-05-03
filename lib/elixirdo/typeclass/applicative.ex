@@ -1,6 +1,5 @@
 defmodule Elixirdo.Typeclass.Applicative do
-
-  import Elixirdo.Base.Class, only: [defclass: 2]
+  use Elixirdo.Base.Class
 
   defclass applicative f, f: functor do
     def pure(a) :: f(a)

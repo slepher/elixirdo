@@ -1,4 +1,9 @@
 defmodule Elixirdo.Base.Class do
+  defmacro __using__(_) do
+    quote do
+      import Elixirdo.Base.Class, only: [defclass: 2]
+    end
+  end
 
   defmacro defclass(name, do: block) do
     class_attr = parse_class(name)
@@ -42,6 +47,7 @@ defmodule Elixirdo.Base.Class do
       else
         parse_def(params, false)
       end
+
     run_def_spec(def_spec, module)
   end
 
@@ -63,6 +69,7 @@ defmodule Elixirdo.Base.Class do
       case :lists.member(pos, m_arities) do
         true ->
           "uvar"
+
         false ->
           "var"
       end
@@ -118,7 +125,7 @@ defmodule Elixirdo.Base.Class do
   end
 
   def parse_class({class, _, [{class_param, _, _}]}) do
-    [class: class, class_param: class_param]
+    [class: class, class_param: class_param, extends: []]
   end
 
   def parse_class({class, _, [{class_param, _, _} | extends]}) do

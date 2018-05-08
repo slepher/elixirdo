@@ -96,6 +96,9 @@ defmodule Elixirdo.Base.Generated do
     Elixirdo.Function
   end
 
+  def module(list, :traversable) when is_list(list) do
+    Elixirdo.List
+  end
 
   def module(type, typeclass) do
     :erlang.exit({:unregisted_module, {type, typeclass}})

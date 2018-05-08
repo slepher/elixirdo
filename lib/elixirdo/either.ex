@@ -1,4 +1,8 @@
 defmodule Elixirdo.Either do
+  use Elixirdo.Base
+
+  deftype either(e, a) :: {just, a} | {error, e}
+
   def either(fac, fbc) do
     fn eab ->
       case eab do

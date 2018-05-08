@@ -1,14 +1,14 @@
 defmodule Elixirdo.Typeclass.Applicative do
-  use Elixirdo.Base.Class
+  use Elixirdo.Base
 
   defclass applicative f, f: functor do
     def pure(a) :: f(a)
 
-    def ap(f(a ~> b), f(a)) :: f(b)
+    def ap(f((a -> b)), f(a)) :: f(b)
 
-    def lift_a2(ab_c: a.b ~> c, applicative_a: f(a), applicative_b: f(b)) :: f(c) do
+    def lift_a2(ab_c: (a,b -> c), applicative_a: f(a), applicative_b: f(b)) :: f(c) do
       a_b_c = fn a -> fn b -> ab_c.(a, b) end end
-      applicative_f = pure(a_b_c, f)
+      applicative_f = f.pure(a_b_c)
       f.ap(f.ap(applicative_f, applicative_a), applicative_b)
     end
   end

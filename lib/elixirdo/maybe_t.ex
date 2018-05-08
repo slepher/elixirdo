@@ -2,10 +2,16 @@ defmodule Elixirdo.MaybeT do
   alias Elixirdo.Typeclass.Functor
   alias Elixirdo.Typeclass.Monad
 
+  use Elixirdo.Base
+
   defstruct [:data]
 
-  def fmap(f, mta, _) do
-    map(fn ma -> Functor.fmap(fn maybe_a -> Functor.fmap(f, maybe_a) end, ma) end, mta)
+  deftype maybe_t(m, a) :: %MaybeT{data: m(maybe(a))}
+
+  definstance functor maybe_t(m) do
+    def fmap(f, mta, m) do
+      map(fn ma -> Functor.fmap(fn maybe_a -> Functor.fmap(f, maybe_a) end, ma) end, mta)
+    end
   end
 
   def ap(mtf, mta) do

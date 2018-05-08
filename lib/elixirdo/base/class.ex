@@ -1,59 +1,59 @@
 defmodule Elixirdo.Base.Class do
+  alias Elixirdo.Base.Utils
+
   defmacro __using__(_) do
     quote do
-      import Elixirdo.Base.Class, only: [defclass: 2]
+      import Elixirdo.Base.Class, only: [defclass: 2, __defclass_def: 1, __defclass_def: 2, __defclass_def: 3]
     end
   end
 
   defmacro defclass(name, do: block) do
-    class_attr = parse_class(name)
+    name |> IO.inspect(label: "class")
+    class_attr = Elixirdo.Base.Utils.parse_class(name)
     [class: class_name, class_param: class_param, extends: _extends] = class_attr
-    block = Elixirdo.Base.Utils.rename_macro(:def, :defi, block)
+    module = __CALLER__.module
+    Module.put_attribute(module, :class_name, class_name)
+    Module.put_attribute(module, :class_param, class_param)
+    block = Elixirdo.Base.Utils.rename_macro(:def, :__defclass_def, block)
 
     quote do
-      import Elixirdo.Base.Class, only: [defi: 1, defi: 2, defi: 3]
-      import Elixirdo.Base.Utils, only: [set_attribute: 2]
-
-      # why use macro?
-      # let Module.put_attribute evaluate before block
-      # it returns nil so expands nothing
-      set_attribute(:class_name, unquote(class_name))
-      set_attribute(:class_param, unquote(class_param))
       unquote(block)
     end
   end
 
-  defmacro defi(params) do
-    class_def(params, [], nil, __CALLER__.module)
+  defmacro __defclass_def(params) do
+    do_defclass_def(params, [], nil, __CALLER__.module)
   end
 
-  defmacro defi(params, do: block) do
-    class_def(params, [], block, __CALLER__.module)
+  defmacro __defclass_def(params, do: block) do
+    do_defclass_def(params, [], block, __CALLER__.module)
   end
 
-  defmacro defi(params, opts) do
+  defmacro __defclass_def(params, opts) do
     {block, new_opts} = Keyword.pop(opts, :do, nil)
-    class_def(params, new_opts, block, __CALLER__.module)
+    do_defclass_def(params, new_opts, block, __CALLER__.module)
   end
 
-  defmacro defi(params, opts, do: block) do
-    class_def(params, opts, block, __CALLER__.module)
+  defmacro __defclass_def(params, opts, do: block) do
+    do_defclass_def(params, opts, block, __CALLER__.module)
   end
 
-  def class_def(params, _opts, block, module) do
+  def do_defclass_def(params, _opts, block, module) do
     def_spec =
       if block do
-        parse_def(params, true)
+        Utils.parse_def(params, true)
       else
-        parse_def(params, false)
+        Utils.parse_def(params, false)
       end
 
-    run_def_spec(def_spec, module)
+    run_def_spec(def_spec, block, module)
   end
 
-  def run_def_spec(def_spec, module) do
+  def run_def_spec(def_spec, block, module) do
     class_name = Module.get_attribute(module, :class_name)
     class_param = Module.get_attribute(module, :class_param)
+
+    IO.inspect def_spec ++ [class_name: class_name, class_param: class_param]
 
     [name, type_params, _return_type] =
       Keyword.values(Keyword.take(def_spec, [:name, :type_params, :return_type]))
@@ -79,6 +79,8 @@ defmodule Elixirdo.Base.Class do
       :lists.map(var_fn(module, pos_name), :lists.seq(1, arity)) ++
         [quote(do: class_param \\ unquote(class_name))]
 
+    default_impl = default_impl(name, class_param, def_spec, block)
+
     quote do
       Kernel.def unquote(name)(unquote_splicing(out_params)) do
         Elixirdo.Base.Undetermined.map_list(
@@ -90,6 +92,23 @@ defmodule Elixirdo.Base.Class do
           class_param
         )
       end
+
+      unquote(default_impl)
+    end
+  end
+
+  def default_impl(name, class_param, def_spec, block) do
+    if block do
+      params = Keyword.get(def_spec, :params)
+      params = :lists.map(fn param -> Macro.var(param, nil) end, params ++ [class_param])
+      name = String.to_atom("__default__" <> Atom.to_string(name))
+      quote do
+        Kernel.def unquote(name)(unquote_splicing(params)) do
+          unquote(block)
+        end
+      end
+    else
+      nil
     end
   end
 
@@ -124,97 +143,6 @@ defmodule Elixirdo.Base.Class do
     false
   end
 
-  def parse_class({class, _, [{class_param, _, _}]}) do
-    [class: class, class_param: class_param, extends: []]
-  end
-
-  def parse_class({class, _, [{class_param, _, _} | extends]}) do
-    extends = parse_extends(class_param, merge_argumentlists(extends))
-    [class: class, class_param: class_param, extends: extends]
-  end
-
-  def parse_extends(class_param, [{extend_param, {extend_class, _, _}} | t]) do
-    [{extend_param, extend_class} | parse_extends(class_param, t)]
-  end
-
-  def parse_extends(class_param, [{extend_class, _, _} | t]) do
-    [{class_param, extend_class} | parse_extends(class_param, t)]
-  end
-
-  def parse_extends(_class_param, []) do
-    []
-  end
-
-  def parse_def({:::, _, [function_defs, function_returns]}, with_block) do
-    def_opts = parse_function_def(function_defs, with_block)
-    return_opts = parse_function_return(function_returns)
-    Keyword.merge(def_opts, return_opts)
-  end
-
-  def parse_function_def({name, _, params}, with_block) do
-    new_params = merge_argumentlists(params)
-
-    results =
-      if with_block do
-        parse_params_with_type(new_params)
-      else
-        [type_params: parse_type_params(new_params)]
-      end
-
-    [name: name] ++ results
-  end
-
-  def parse_function_return({return_type, _, _return_args}) do
-    [return_type: return_type]
-  end
-
-  def parse_type_params(type_params) do
-    :lists.map(&parse_type_param/1, type_params)
-  end
-
-  def parse_type_param({:~>, _, [fn_params, fn_returns]}) do
-    {:~>, parse_fn_params(unwrap_term(fn_params)), unwrap_term(fn_returns)}
-  end
-
-  def parse_type_param({name, _, _}) do
-    name
-  end
-
-  def parse_fn_params({:., _, [dot_left, dot_right]}) do
-    parse_fn_params(unwrap_term(dot_left)) ++ [dot_right]
-  end
-
-  def parse_fn_params(name) when is_atom(name) do
-    [name]
-  end
-
-  def parse_params_with_type(params_with_type) do
-    new_params_with_type =
-      :lists.map(
-        fn
-          {k, v} -> {k, v}
-          k when is_atom(k) -> {k, nil}
-        end,
-        params_with_type
-      )
-
-    params = Keyword.keys(new_params_with_type)
-    type_params = Keyword.values(new_params_with_type)
-    [params: params, type_params: parse_type_params(type_params)]
-  end
-
-  def merge_argumentlists([h | t]) when is_list(h) do
-    h ++ merge_argumentlists(t)
-  end
-
-  def merge_argumentlists([h | t]) do
-    [h | merge_argumentlists(t)]
-  end
-
-  def merge_argumentlists([]) do
-    []
-  end
-
   @doc false
   def __spec__?(module, name, arity) do
     signature = {name, arity}
@@ -229,9 +157,5 @@ defmodule Elixirdo.Base.Class do
     specs = Module.get_attribute(module, :spec)
     found = :lists.map(mapper, specs)
     :lists.any(&(&1 == true), found)
-  end
-
-  def unwrap_term({term, _, _}) do
-    term
   end
 end

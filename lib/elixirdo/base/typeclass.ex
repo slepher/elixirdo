@@ -22,10 +22,7 @@ defmodule Elixirdo.Base.Typeclass do
 
       defmacro unquote(class_name)() do
         module = __CALLER__.module
-        Module.put_attribute(module, unquote(class_name), unquote(meta_class))
-        module |> IO.inspect(label: "module")
-        unquote(class_name) |> IO.inspect(label: "class_name")
-        unquote(meta_class) |> IO.inspect(label: "meta_class")
+        Module.put_attribute(module, :typeclass_module, unquote(meta_class))
         nil
       end
 

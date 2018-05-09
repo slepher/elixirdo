@@ -7,7 +7,6 @@ defmodule Elixirdo.Base.Instance do
   end
 
   defmacro definstance(name, do: block) do
-    name |> IO.inspect(label: "name is")
     class_attr = Elixirdo.Base.Utils.parse_class(name)
     [class: class_name, class_param: class_param, extends: _extends] = class_attr
     _extends |> IO.inspect(label: "extends")
@@ -44,7 +43,7 @@ defmodule Elixirdo.Base.Instance do
 
     class_name = Module.get_attribute(module, :class_name)
     class_param = Module.get_attribute(module, :class_param)
-    meta_class = Module.get_attribute(module, class_name)
+    typeclass_module = Module.get_attribute(module, :typeclass_module)
     functions = Module.get_attribute(module, :functions, [])
     functions = functions || []
     functions = :ordsets.add_element({name, arity}, functions)

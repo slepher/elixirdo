@@ -2,6 +2,9 @@ defmodule Elixirdo.MaybeT do
   alias Elixirdo.Typeclass.Functor
   alias Elixirdo.Typeclass.Monad
 
+  import Elixirdo.Typeclass.Functor, only: [functor: 0]
+  import Elixirdo.Typeclass.Applicative, only: [applicative: 0]
+
   use Elixirdo.Base
 
   defstruct [:data]

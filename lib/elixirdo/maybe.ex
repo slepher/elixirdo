@@ -1,10 +1,12 @@
 defmodule Elixirdo.Maybe do
   use Elixirdo.Base
   alias Elixirdo.Base.Undetermined
+  import Elixirdo.Typeclass.Functor, only: [functor: 0]
+  import Elixirdo.Typeclass.Applicative, only: [applicative: 0]
 
   deftype maybe(a) :: {:just, a} | :nothing
 
-  definstance functor maybe do
+  definstance functor maybe, at: Elixirdo.Typeclass.Functor do
     def fmap(f, {:just, x}) do
       {:just, f.(x)}
     end
@@ -14,7 +16,7 @@ defmodule Elixirdo.Maybe do
     end
   end
 
-  definstance applicative maybe do
+  definstance applicative maybe, at: Elixirdo.Typeclass.Applicative  do
     def pure(a) do
       {:just, a}
     end

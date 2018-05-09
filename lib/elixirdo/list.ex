@@ -1,9 +1,11 @@
 defmodule Elixirdo.List do
   use Elixirdo.Base
 
-  alias Elixirdo.Typeclass.Applicative
+  import Elixirdo.Typeclass.Functor, only: [functor: 0]
+  import Elixirdo.Typeclass.Applicative, only: [applicative: 0]
+  import Elixirdo.Typeclass.Traversable, only: [traversable: 0]
 
-  deftype list(a) :: [a]
+  deftype [a]
 
   definstance functor list do
     def fmap(f, xs) do

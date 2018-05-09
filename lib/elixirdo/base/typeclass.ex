@@ -1,9 +1,10 @@
-defmodule Elixirdo.Base.Class do
+defmodule Elixirdo.Base.Typeclass do
   alias Elixirdo.Base.Utils
 
   defmacro __using__(_) do
     quote do
-      import Elixirdo.Base.Class, only: [defclass: 2, __defclass_def: 1, __defclass_def: 2, __defclass_def: 3]
+      import Elixirdo.Base.Typeclass, only: [defclass: 2, __defclass_def: 1, __defclass_def: 2, __defclass_def: 3]
+      alias Elixirdo.Base.Register
     end
   end
 
@@ -12,12 +13,24 @@ defmodule Elixirdo.Base.Class do
     class_attr = Elixirdo.Base.Utils.parse_class(name)
     [class: class_name, class_param: class_param, extends: _extends] = class_attr
     module = __CALLER__.module
+    meta_class = Module.concat(module, Meta)
     Module.put_attribute(module, :class_name, class_name)
     Module.put_attribute(module, :class_param, class_param)
     block = Elixirdo.Base.Utils.rename_macro(:def, :__defclass_def, block)
 
     quote do
+
+      defmacro unquote(class_name)() do
+        module = __CALLER__.module
+        Module.put_attribute(module, unquote(class_name), unquote(meta_class))
+        module |> IO.inspect(label: "module")
+        unquote(class_name) |> IO.inspect(label: "class_name")
+        unquote(meta_class) |> IO.inspect(label: "meta_class")
+        nil
+      end
+
       unquote(block)
+
     end
   end
 

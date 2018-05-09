@@ -24,6 +24,18 @@ defmodule Elixirdo.Base.Utils do
     nil
   end
 
+  def update_attribute(module, key, fun) do
+    attribute = Module.get_attribute(module, key)
+    attribute = fun.(attribute)
+    Module.put_attribute(module, key, attribute)
+  end
+
+  def get_delete_attribute(module, key) do
+    attribute = Module.get_attribute(module, key)
+    Module.delete_attribute(module, key)
+    attribute
+  end
+
   defmacro set_module_attribute(module, key, value) do
     Module.put_attribute(module, key, value)
   end

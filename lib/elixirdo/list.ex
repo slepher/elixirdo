@@ -1,8 +1,11 @@
 defmodule Elixirdo.List do
   use Elixirdo.Base
 
-  import Elixirdo.Typeclass.Functor, only: [functor: 0]
-  import Elixirdo.Typeclass.Applicative, only: [applicative: 0]
+  alias Elixirdo.Typeclass.Functor
+  alias Elixirdo.Typeclass.Applicative
+
+  import Functor, only: [functor: 0]
+  import Applicative, only: [applicative: 0]
   import Elixirdo.Typeclass.Traversable, only: [traversable: 0]
 
   deftype [a]
@@ -10,6 +13,20 @@ defmodule Elixirdo.List do
   definstance functor list do
     def fmap(f, xs) do
       :lists.map(f, xs)
+    end
+  end
+
+  definstance applicative list do
+    def pure(a) do
+      [a]
+    end
+
+    def ap(list_f, list_a) do
+      for f <- list_f do
+        for a <- list_a do
+          f.(a)
+        end
+      end
     end
   end
 

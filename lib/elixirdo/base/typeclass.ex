@@ -3,8 +3,8 @@ defmodule Elixirdo.Base.Typeclass do
 
   defmacro __using__(_) do
     quote do
-      import Elixirdo.Base.Typeclass, only: [defclass: 2, __defclass_def: 1, __defclass_def: 2, __defclass_def: 3]
-      alias Elixirdo.Base.Register
+      import Elixirdo.Base.Typeclass,
+        only: [defclass: 2, __defclass_def: 1, __defclass_def: 2, __defclass_def: 3]
     end
   end
 
@@ -16,18 +16,26 @@ defmodule Elixirdo.Base.Typeclass do
     meta_class = Module.concat(module, Meta)
     Module.put_attribute(module, :class_name, class_name)
     Module.put_attribute(module, :class_param, class_param)
+    Module.put_attribute(module, :functions, [])
     block = Elixirdo.Base.Utils.rename_macro(:def, :__defclass_def, block)
 
     quote do
-
-      defmacro unquote(class_name)() do
-        module = __CALLER__.module
-        Module.put_attribute(module, :typeclass_module, unquote(meta_class))
-        nil
-      end
-
       unquote(block)
 
+      Elixirdo.Base.Typeclass.typeclass_macro(unquote(class_name), unquote(module))
+    end
+  end
+
+  defmacro typeclass_macro(class_name, instance_module) do
+    module = __CALLER__.module
+    functions = Module.get_attribute(module, :functions)
+    quote do
+      defmacro unquote(class_name)() do
+        module = __CALLER__.module
+        Module.put_attribute(module, :typeclass_module, unquote(instance_module))
+        Module.put_attribute(module, :typeclass_functions, unquote(functions))
+        nil
+      end
     end
   end
 
@@ -63,7 +71,7 @@ defmodule Elixirdo.Base.Typeclass do
     class_name = Module.get_attribute(module, :class_name)
     class_param = Module.get_attribute(module, :class_param)
 
-    IO.inspect def_spec ++ [class_name: class_name, class_param: class_param]
+    IO.inspect(def_spec ++ [class_name: class_name, class_param: class_param])
 
     [name, type_params, _return_type] =
       Keyword.values(Keyword.take(def_spec, [:name, :type_params, :return_type]))
@@ -90,6 +98,8 @@ defmodule Elixirdo.Base.Typeclass do
         [quote(do: class_param \\ unquote(class_name))]
 
     default_impl = default_impl(name, class_param, def_spec, block)
+
+    Utils.update_attribute(module, :functions, fn functions -> [{name, arity}|functions] end)
 
     quote do
       Kernel.def unquote(name)(unquote_splicing(out_params)) do

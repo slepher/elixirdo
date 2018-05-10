@@ -26,39 +26,26 @@ defmodule Elixirdo.Base.Instance do
   defmacro after_definstance() do
     module = __CALLER__.module
     functions = Utils.get_delete_attribute(module, :functions)
-    class_name = Utils.get_delete_attribute(module, :class_name)
     class_param = Utils.get_delete_attribute(module, :class_param)
     typeclass_module = Utils.get_delete_attribute(module, :typeclass_module)
     typeclass_functions = Utils.get_delete_attribute(module, :typeclass_functions)
-
-    IO.inspect(
-      class_name: class_name,
-      class_param: class_param,
-      class_functions: typeclass_functions,
-      functions: functions
-    )
-
     inject_functions(typeclass_module, module, class_param, typeclass_functions, functions)
   end
 
   def inject_functions(class_module, module, class_param, class_functions, functions) do
     :lists.foldl(fn {name, arity}, acc ->
       impl_arities = Keyword.get_values(functions, name)
-
       case check_impls(arity, impl_arities) do
         {true, true} ->
           acc
-
         {true, false} ->
           [longdef(module, name, arity, class_param) | acc]
-
         {false, true} ->
           [shortdef(module, name, arity, class_param) | acc]
-
         {false, false} ->
           [shortdef(module, name, arity, class_param), default_def(class_module, module, name, arity)|acc]
       end
-    end,[], class_functions)
+    end, [], class_functions)
   end
 
   def check_impls(arity, arities) do

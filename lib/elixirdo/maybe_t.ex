@@ -1,5 +1,7 @@
 defmodule Elixirdo.MaybeT do
+  alias Elixirdo.MaybeT
   alias Elixirdo.Typeclass.Functor
+  alias Elixirdo.Typeclass.Applicative
   alias Elixirdo.Typeclass.Monad
 
   import Elixirdo.Typeclass.Functor, only: [functor: 0]
@@ -11,36 +13,44 @@ defmodule Elixirdo.MaybeT do
 
   deftype maybe_t(m, a) :: %MaybeT{data: m(maybe(a))}
 
-  definstance functor maybe_t(m) do
-    def fmap(f, mta, m) do
+  definstance functor maybe_t(m)  do
+    def fmap(f, mta) do
       map(fn ma -> Functor.fmap(fn maybe_a -> Functor.fmap(f, maybe_a) end, ma) end, mta)
     end
   end
 
-  def ap(mtf, mta) do
-    maybe_t(
-      Monad.bind(run_maybe_t(mtf),
-      fn maybe_f ->
-        case maybe_f do
-          :nothing ->
+  definstance applicative maybe_t(m) do
+    def pure(a) do
+      maybe_t(Applicative.pure({:just, a}))
+    end
+
+    def ap(mtf, mta) do
+      maybe_t(
+        Monad.bind(run_maybe_t(mtf), fn maybe_f ->
+          case maybe_f do
+            :nothing ->
               Monad.return(:nothing)
-          {:just, f} ->
+
+            {:just, f} ->
               Functor.fmap(fn maybe_a -> Functor.fmap(f, maybe_a) end, run_maybe_t(mta))
           end
-      end))
+        end)
+      )
+    end
   end
 
   def bind(mta, kmtb, _) do
     maybe_t(
-      Monad.bind(run_maybe_t(mta),
-      fn maybe_a ->
+      Monad.bind(run_maybe_t(mta), fn maybe_a ->
         case maybe_a do
           :nothing ->
             Monad.return(:nothing)
+
           {:just, a} ->
             run_maybe_t(kmtb.(a))
         end
-      end))
+      end)
+    )
   end
 
   def map(f, mta) do
@@ -48,10 +58,10 @@ defmodule Elixirdo.MaybeT do
   end
 
   def maybe_t(data) do
-    %Elixirdo.MaybeT{data: data}
+    %MaybeT{data: data}
   end
 
-  def run_maybe_t(%Elixirdo.MaybeT{data: data}) do
+  def run_maybe_t(%MaybeT{data: data}) do
     data
   end
 end

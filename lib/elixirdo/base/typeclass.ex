@@ -13,7 +13,6 @@ defmodule Elixirdo.Base.Typeclass do
     class_attr = Elixirdo.Base.Utils.parse_class(name)
     [class: class_name, class_param: class_param, extends: _extends] = class_attr
     module = __CALLER__.module
-    meta_class = Module.concat(module, Meta)
     Module.put_attribute(module, :class_name, class_name)
     Module.put_attribute(module, :class_param, class_param)
     Module.put_attribute(module, :functions, [])
@@ -79,22 +78,21 @@ defmodule Elixirdo.Base.Typeclass do
     arity = length(type_params)
 
     m_arities = match_arities(class_param, type_params, arity)
-    u_params = :lists.map(var_fn(module, "uvar"), m_arities)
-    t_params = :lists.map(var_fn(module, "var"), m_arities)
-    params = :lists.map(var_fn(module, "var"), :lists.seq(1, arity))
+    u_params = :lists.map(Utils.var_fn(module, "uvar"), m_arities)
+    t_params = :lists.map(Utils.var_fn(module, "var"), m_arities)
+    params = :lists.map(Utils.var_fn(module, "var"), :lists.seq(1, arity))
 
     pos_name = fn pos ->
       case :lists.member(pos, m_arities) do
         true ->
           "uvar"
-
         false ->
           "var"
       end
     end
 
     out_params =
-      :lists.map(var_fn(module, pos_name), :lists.seq(1, arity)) ++
+      :lists.map(Utils.var_fn(module, pos_name), :lists.seq(1, arity)) ++
         [quote(do: class_param \\ unquote(class_name))]
 
     default_impl = default_impl(name, class_param, def_spec, block)
@@ -132,17 +130,6 @@ defmodule Elixirdo.Base.Typeclass do
     end
   end
 
-  def var_fn(module, gen_name) when is_function(gen_name) do
-    fn pos ->
-      name = gen_name.(pos)
-      Macro.var(String.to_atom(name <> Integer.to_string(pos)), module)
-    end
-  end
-
-  def var_fn(module, name) do
-    fn pos -> Macro.var(String.to_atom(name <> Integer.to_string(pos)), module) end
-  end
-
   def match_arities(class_param, type_params, arity) do
     :lists.reverse(
       :lists.filter(
@@ -161,21 +148,5 @@ defmodule Elixirdo.Base.Typeclass do
 
   def match_class_param(_type_param, _class_param) do
     false
-  end
-
-  @doc false
-  def __spec__?(module, name, arity) do
-    signature = {name, arity}
-
-    mapper = fn {:spec, expr, pos} ->
-      if Kernel.Typespec.spec_to_signature(expr) == signature do
-        Module.store_typespec(module, :callback, {:callback, expr, pos})
-        true
-      end
-    end
-
-    specs = Module.get_attribute(module, :spec)
-    found = :lists.map(mapper, specs)
-    :lists.any(&(&1 == true), found)
   end
 end

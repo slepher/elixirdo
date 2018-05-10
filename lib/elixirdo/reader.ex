@@ -28,5 +28,4 @@ defmodule Elixirdo.Reader do
       end
     end
   end
-
 end

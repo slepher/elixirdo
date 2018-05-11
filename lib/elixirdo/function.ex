@@ -3,6 +3,7 @@ defmodule Elixirdo.Function do
 
   import Elixirdo.Typeclass.Functor, only: [functor: 0]
   import Elixirdo.Typeclass.Applicative, only: [applicative: 0]
+  import Elixirdo.Typeclass.Monad, only: [monad: 0]
 
   deftype(function(r, a) :: (r -> a))
 
@@ -28,32 +29,10 @@ defmodule Elixirdo.Function do
     end
   end
 
-  def unquote(:"<$")(b, fa) do
-    Kernel.apply(Functor, :"default_<$", [b, fa, :function])
-  end
-
-  def unquote(:"<*>")(ff, fa) do
-    fn r -> ff.(r).(fa.(r)) end
-  end
-
-  def unquote(:"*>")(fa, fb) do
-    Kernel.apply(Applicative, :"default_*>", [fa, fb, :function])
-  end
-
-  def unquote(:"<*")(rTA, rTB) do
-    Kernel.apply(Applicative, :"default_<*", [rTA, rTB, :function])
-  end
-
-  def unquote(:">>=")(fa, kFB) do
-    fn x -> kFB.(fa.(x)).(x) end
-  end
-
-  def unquote(:">>")(fa, fB) do
-    Kernel.apply(Monad, :"default_>>", [fa, fB, :function])
-  end
-
-  def return(a) do
-    Monad.default_return(a, :function)
+  definstance monad function(r) do
+    def bind(fa, k_fb) do
+      fn r -> (k_fb.(fa.(r))).(r) end
+    end
   end
 
   def ask() do

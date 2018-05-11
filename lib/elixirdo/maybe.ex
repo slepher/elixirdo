@@ -38,7 +38,7 @@ defmodule Elixirdo.Maybe do
     end
   end
 
-  definstance monad maybe do
+  definstance monad(maybe) do
     def return(a) do
       {:just, a}
     end

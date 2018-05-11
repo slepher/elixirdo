@@ -1,5 +1,6 @@
 defmodule Elixirdo.Typeclass.Monad do
   use Elixirdo.Base
+  use Elixirdo.Expand
 
   defclass monad m, m: applicative do
     def return(a: a) :: m(a) do
@@ -12,6 +13,7 @@ defmodule Elixirdo.Typeclass.Monad do
       bind(ma, fn _ -> mb end, m)
     end
   end
+
 
   def join(mma, monad \\ :monad) do
     bind(mma, fn ma -> ma end, monad)

@@ -1,21 +1,21 @@
 defmodule Elixirdo.Base.Utils do
   def rename_macro(from, to, block) do
-    funs =
-      case block do
-        nil -> []
-        {:__block__, _ctx, funs} -> funs
-        fun = {from_def, _ctx, _inner} when from_def == from -> [fun]
-      end
+    {renamed_ast, _} =
+      Macro.traverse(
+        block,
+        nil,
+        fn
+          {from_def, ctx, fun}, acc when from_def == from ->
+            {{to, ctx, fun}, acc}
 
-    funs
-    |> List.wrap()
-    |> Enum.map(fn
-      {from_def, ctx, fun} when from_def == from ->
-        {to, ctx, fun}
-
-      ast ->
-        ast
-    end)
+          ast, acc ->
+            {ast, acc}
+        end,
+        fn ast, acc ->
+          {ast, acc}
+        end
+      )
+    renamed_ast
   end
 
   defmacro set_attribute(key, value) do

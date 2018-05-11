@@ -107,7 +107,7 @@ defmodule Elixirdo.Base.Typeclass do
 
     default_impl = default_impl(name, class_param, def_spec, block)
 
-    Utils.update_attribute(module, :functions, fn functions -> :ordsets.add_element({name, arity}, functions) end)
+    Utils.update_attribute(module, :functions, fn functions -> [{name, arity}|functions] end)
 
     quote do
       Kernel.def unquote(name)(unquote_splicing(out_params)) do
@@ -124,7 +124,7 @@ defmodule Elixirdo.Base.Typeclass do
         )
       end
 
-      unquote(default_impl)
+      unquote_splicing(default_impl)
     end
   end
 
@@ -225,13 +225,13 @@ defmodule Elixirdo.Base.Typeclass do
       params = :lists.map(fn param -> Macro.var(param, nil) end, params ++ [class_param])
       name = String.to_atom("__default__" <> Atom.to_string(name))
 
-      quote do
+      [quote do
         Kernel.def unquote(name)(unquote_splicing(params)) do
           unquote(block)
         end
-      end
+      end]
     else
-      nil
+      []
     end
   end
 

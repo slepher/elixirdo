@@ -1,31 +1,22 @@
 defmodule Elixirdo.Typeclass.Monad do
 
-  alias Elixirdo.Base.Undetermined
-  alias Elixirdo.Base.Generated
-  alias Elixirdo.Typeclass.Applicative
+  use Elixirdo.Base
+  use Elixirdo.Expand
 
+  defclass monad m, m: applicative do
+    def return(a: a) :: m(a) do
+      m.pure(a)
+    end
 
-  def bind(ua, kub, umonad \\ :monad) do
-    Undetermined.map(fn ma, monad ->
-      kmb = fn a -> Undetermined.run(kub.(a), monad) end
-      do_bind(ma, kmb, monad)
-    end, ua, umonad)
-  end
+    def bind(m(a), (a -> m(b))) :: m(b)
 
-  def then(ua, ub, umonad \\ :monad) do
-    Undetermined.map_list(fn [ma, mb], monad -> do_then(ma, mb, monad) end, [ua, ub], umonad)
-  end
-
-  def return(a, umonad \\ :monad) do
-    Undetermined.new(fn monad -> do_return(a, monad) end, umonad)
+    def then(ma: m(a), mb: m(b)) :: m(b) do
+      bind(ma, fn _ -> mb end, m)
+    end
   end
 
   def default_then(ma, mb, monad) do
     bind(ma, fn _ -> mb end, monad)
-  end
-
-  def default_return(a, monad) do
-    Applicative.pure(a, monad)
   end
 
   def join(mma, monad \\ :monad) do
@@ -34,21 +25,6 @@ defmodule Elixirdo.Typeclass.Monad do
 
   def lift_m(f, ma, monad \\ :monad) do
     bind(ma, fn a -> return(f.(a)) end, monad)
-  end
-
-  defp do_bind(ma, k_mb, monad) do
-    module = Generated.module(monad, :monad)
-    module.bind(ma, k_mb, monad)
-  end
-
-  defp do_then(ma, mb, monad) do
-    module = Generated.module(monad, :monad)
-    module.then(ma, mb, monad)
-  end
-
-  defp do_return(a, monad) do
-    module = Generated.module(monad, :monad)
-    module.return(a, monad)
   end
 
 end

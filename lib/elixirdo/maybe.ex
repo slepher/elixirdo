@@ -1,12 +1,16 @@
 defmodule Elixirdo.Maybe do
   use Elixirdo.Base
+  use Elixirdo.Expand
   alias Elixirdo.Base.Undetermined
+
   import Elixirdo.Typeclass.Functor, only: [functor: 0]
   import Elixirdo.Typeclass.Applicative, only: [applicative: 0]
+  import Elixirdo.Typeclass.Monad, only: [monad: 0]
 
-  deftype maybe(a) :: {:just, a} | :nothing
+  require Integer
+  deftype(maybe(a) :: {:just, a} | :nothing)
 
-  definstance functor maybe, at: Elixirdo.Typeclass.Functor do
+  definstance functor(maybe) do
     def fmap(f, {:just, x}) do
       {:just, f.(x)}
     end
@@ -16,7 +20,7 @@ defmodule Elixirdo.Maybe do
     end
   end
 
-  definstance applicative maybe, at: Elixirdo.Typeclass.Applicative  do
+  definstance applicative(maybe) do
     def pure(a) do
       {:just, a}
     end
@@ -34,23 +38,18 @@ defmodule Elixirdo.Maybe do
     end
   end
 
+  definstance monad maybe do
+    def bind({:just, x}, fun) do
+      fun.(x)
+    end
 
-  def bind(ma, kmb), do: bind(ma, kmb, :maybe)
-
-  def bind({:just, x}, fun, :maybe) do
-    fun.(x)
-  end
-
-  def bind(:nothing, _fun, :maybe) do
-    :nothing
+    def bind(:nothing, _fun) do
+      :nothing
+    end
   end
 
   def unquote(:">>")(ma, mb) do
     Kernel.apply(:monad, :"default_>>", [ma, mb, __MODULE__])
-  end
-
-  def return(a, _ \\ :maybe) do
-    Monad.default_return(a, __MODULE__)
   end
 
   def fail(_e, _ \\ :maybe) do

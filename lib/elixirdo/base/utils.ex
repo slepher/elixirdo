@@ -99,12 +99,12 @@ defmodule Elixirdo.Base.Utils do
     :lists.map(&parse_type_param/1, type_params)
   end
 
-  def parse_type_param({:~>, _, [fn_params, fn_returns]}) do
-    {:~>, parse_fn_params(unwrap_term(fn_params)), unwrap_term(fn_returns)}
+  def parse_type_param({:->, _, [fn_params, fn_returns]}) do
+    {:->, parse_type_params(fn_params), parse_type_param(fn_returns)}
   end
 
   def parse_type_param([{:->, _, [fn_params, fn_returns]}]) do
-    {:~>, parse_type_params(fn_params), unwrap_term(fn_returns)}
+    {:->, parse_type_params(fn_params), parse_type_param(fn_returns)}
   end
 
   def parse_type_param({name, _, _}) do

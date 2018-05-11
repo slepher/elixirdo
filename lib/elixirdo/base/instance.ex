@@ -1,5 +1,6 @@
 defmodule Elixirdo.Base.Instance do
   alias Elixirdo.Base.Utils
+  use Elixirdo.Expand
 
   defmacro __using__(_) do
     quote do
@@ -17,6 +18,7 @@ defmodule Elixirdo.Base.Instance do
     block = Elixirdo.Base.Utils.rename_macro(:def, :__definstance_def, block)
 
     quote do
+
       unquote(class_name)()
       unquote(block)
       Elixirdo.Base.Instance.after_definstance()
@@ -25,11 +27,15 @@ defmodule Elixirdo.Base.Instance do
 
   defmacro after_definstance() do
     module = __CALLER__.module
-    functions = Utils.get_delete_attribute(module, :functions)
-    class_param = Utils.get_delete_attribute(module, :class_param)
-    typeclass_module = Utils.get_delete_attribute(module, :typeclass_module)
-    typeclass_functions = Utils.get_delete_attribute(module, :typeclass_functions)
-    inject_functions(typeclass_module, module, class_param, typeclass_functions, functions)
+    functions = Module.get_attribute(module, :functions)
+    class_param = Module.get_attribute(module, :class_param)
+    typeclass_module = Module.get_attribute(module, :typeclass_module)
+    typeclass_functions = Module.get_attribute(module, :typeclass_functions)
+    quote do
+      unquote_splicing(
+        inject_functions(typeclass_module, module, class_param, typeclass_functions, functions)
+      )
+    end
   end
 
   def inject_functions(class_module, module, class_param, class_functions, functions) do
@@ -81,11 +87,6 @@ defmodule Elixirdo.Base.Instance do
         unquote(class_module).unquote(default_name)(unquote_splicing(params))
       end
     end
-  end
-
-  defmacro deftype(type_spec) do
-    type_spec |> IO.inspect(lable: type_spec)
-    nil
   end
 
   defmacro __definstance_def({name, _, params}, do: block) do

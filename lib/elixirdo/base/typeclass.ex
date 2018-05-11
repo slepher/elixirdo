@@ -9,7 +9,6 @@ defmodule Elixirdo.Base.Typeclass do
   end
 
   defmacro defclass(name, do: block) do
-    name |> IO.inspect(label: "class")
     class_attr = Elixirdo.Base.Utils.parse_class(name)
     [class: class_name, class_param: class_param, extends: _extends] = class_attr
     module = __CALLER__.module
@@ -19,6 +18,7 @@ defmodule Elixirdo.Base.Typeclass do
     block = Elixirdo.Base.Utils.rename_macro(:def, :__defclass_def, block)
 
     quote do
+
       unquote(block)
 
       Elixirdo.Base.Typeclass.typeclass_macro(unquote(class_name), unquote(module))
@@ -28,6 +28,7 @@ defmodule Elixirdo.Base.Typeclass do
   defmacro typeclass_macro(class_name, instance_module) do
     module = __CALLER__.module
     functions = Module.get_attribute(module, :functions)
+
     quote do
       defmacro unquote(class_name)() do
         module = __CALLER__.module
@@ -70,44 +71,56 @@ defmodule Elixirdo.Base.Typeclass do
     class_name = Module.get_attribute(module, :class_name)
     class_param = Module.get_attribute(module, :class_param)
 
-    IO.inspect(def_spec ++ [class_name: class_name, class_param: class_param])
-
-    [name, type_params, _return_type] =
+    [name, param_types, _return_type] =
       Keyword.values(Keyword.take(def_spec, [:name, :type_params, :return_type]))
 
-    arity = length(type_params)
+    arity = length(param_types)
+    arities = :lists.seq(1, arity)
+    u_arities = match_u_arities(class_param, param_types, arity)
 
-    m_arities = match_arities(class_param, type_params, arity)
-    u_params = :lists.map(Utils.var_fn(module, "uvar"), m_arities)
-    t_params = :lists.map(Utils.var_fn(module, "var"), m_arities)
-    params = :lists.map(Utils.var_fn(module, "var"), :lists.seq(1, arity))
+    param_names = :lists.map(fn n -> "var_" <> Integer.to_string(n) end, arities)
+    params = :lists.map(fn param -> Macro.var(String.to_atom(param), module) end, param_names)
+    u_param_names = :lists.map(fn n -> "u_var_" <> Integer.to_string(n) end, u_arities)
+    u_params = :lists.map(fn param -> Macro.var(String.to_atom(param), module) end, u_param_names)
+    t_param_names = :lists.map(fn n -> "var_" <> Integer.to_string(n) end, u_arities)
+    t_params = :lists.map(fn param -> Macro.var(String.to_atom(param), module) end, t_param_names)
 
-    pos_name = fn pos ->
-      case :lists.member(pos, m_arities) do
-        true ->
-          "uvar"
-        false ->
-          "var"
-      end
-    end
+    out_param_names =
+      :lists.map(
+        fn n ->
+          case :lists.member(n, u_arities) do
+            true ->
+              "u_var_" <> Integer.to_string(n)
+
+            false ->
+              "var_" <> Integer.to_string(n)
+          end
+        end,
+        arities
+      )
 
     out_params =
-      :lists.map(Utils.var_fn(module, pos_name), :lists.seq(1, arity)) ++
-        [quote(do: class_param \\ unquote(class_name))]
+      :lists.map(fn param -> Macro.var(String.to_atom(param), module) end, out_param_names) ++
+        [quote(do: u_type \\ unquote(class_name))]
+
+    rest_arities = arities -- u_arities
 
     default_impl = default_impl(name, class_param, def_spec, block)
 
-    Utils.update_attribute(module, :functions, fn functions -> [{name, arity}|functions] end)
+    Utils.update_attribute(module, :functions, fn functions -> :ordsets.add_element({name, arity}, functions) end)
 
     quote do
       Kernel.def unquote(name)(unquote_splicing(out_params)) do
         Elixirdo.Base.Undetermined.map_list(
-          fn [unquote_splicing(t_params)], class_type ->
-            module = Elixirdo.Base.Generated.module(class_type, unquote(class_name))
+          fn [unquote_splicing(t_params)], type ->
+            unquote_splicing(
+              trans_vars(rest_arities, param_types, param_names, class_name, class_param, module)
+            )
+            module = Elixirdo.Base.Generated.module(type, unquote(class_name))
             module.unquote(name)(unquote_splicing(params))
           end,
           [unquote_splicing(u_params)],
-          class_param
+          u_type
         )
       end
 
@@ -115,11 +128,103 @@ defmodule Elixirdo.Base.Typeclass do
     end
   end
 
+  def trans_vars(arities, param_types, param_names, class_name, class_param, module) do
+    :lists.filter(
+      fn ast -> ast != nil end,
+      :lists.map(
+        fn n ->
+          param_type = :lists.nth(n, param_types)
+          param_name = :lists.nth(n, param_names)
+          trans_var(param_type, param_name, class_name, class_param, module, false)
+        end,
+        arities
+      )
+    )
+  end
+
+  ## trans variable with type like (a, f, (a -> f) -> f) to this form
+  ## param = fn param_1, param_2, param_3 ->
+  ##              param_2 = Undetermined.run(param2, class_name)
+  ##              param_3 = fn param_3_1 ->
+  ##                           param_3_return = param_3.(param_3_1)
+  ##                           Undetermined.run(param_3_return, class_name)
+  ##                        end
+  ##              param_return = param.(param_1, param_2, param_3)
+  ##              Undetermined.run(param_return, class_name)
+  ##         end
+  def trans_var({:->, fn_param_types, fn_return_type}, var_name, class_name, class_param, module, is_return_var) do
+
+    fn_param_arity = length(fn_param_types)
+
+    fn_param_names =
+      :lists.map(
+        fn n -> var_name <> "_" <> Integer.to_string(n) end,
+        :lists.seq(1, fn_param_arity)
+      )
+
+    fn_params =
+      :lists.map(
+        fn fn_param_name -> Macro.var(String.to_atom(fn_param_name), module) end,
+        fn_param_names
+      )
+
+    fn_return_name = var_name <> "_return"
+    fn_return = Macro.var(String.to_atom(fn_return_name), module)
+    var = Macro.var(String.to_atom(var_name), module)
+
+    var_expression =
+      quote do
+        fn unquote_splicing(fn_params) ->
+          unquote_splicing(
+            trans_vars(:lists.seq(1, fn_param_arity), fn_param_types, fn_param_names, class_name, class_param, module)
+          )
+
+          unquote(fn_return) = unquote(var).(unquote_splicing(fn_params))
+
+          unquote(
+            trans_var(fn_return_type, fn_return_name, class_name, class_param, module, true)
+          )
+        end
+      end
+
+    quote_assign(var, var_expression, is_return_var)
+  end
+
+  def trans_var(class_param, var_name, class_name, class_param, module, is_return_var) do
+    var = Macro.var(String.to_atom(var_name), module)
+
+    var_expression =
+      quote do
+        Elixirdo.Base.Undetermined.run(unquote(var), unquote(class_name))
+      end
+
+    quote_assign(var, var_expression, is_return_var)
+  end
+
+  def trans_var(_var_type, _var_name, _class_name, _class_param, _module, false) do
+    nil
+  end
+
+  def trans_var(_var_type, var_name, _class_name, _class_param, module, true) do
+    Macro.var(String.to_atom(var_name), module)
+  end
+
+  def quote_assign(var, var_expression, false) do
+    quote do
+      unquote(var) = unquote(var_expression)
+    end
+  end
+
+  def quote_assign(_var, var_expression, true) do
+    var_expression
+  end
+
   def default_impl(name, class_param, def_spec, block) do
     if block do
       params = Keyword.get(def_spec, :params)
       params = :lists.map(fn param -> Macro.var(param, nil) end, params ++ [class_param])
       name = String.to_atom("__default__" <> Atom.to_string(name))
+
       quote do
         Kernel.def unquote(name)(unquote_splicing(params)) do
           unquote(block)
@@ -130,7 +235,19 @@ defmodule Elixirdo.Base.Typeclass do
     end
   end
 
-  def match_arities(class_param, type_params, arity) do
+  def match_u_arities(class_param, type_params, arity) do
+    :lists.reverse(
+      :lists.filter(
+        fn n ->
+          type_param = :lists.nth(n, type_params)
+          match_class_param(type_param, class_param)
+        end,
+        :lists.seq(1, arity)
+      )
+    )
+  end
+
+  def match_f_arities(class_param, type_params, arity) do
     :lists.reverse(
       :lists.filter(
         fn n ->

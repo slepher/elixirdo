@@ -6,7 +6,7 @@ defmodule Elixirdo.Base.Type do
   end
 
   defmacro deftype(type_spec) do
-    type_spec |> IO.inspect(lable: type_spec)
+    #type_spec |> IO.inspect(lable: type_spec)
     nil
   end
 

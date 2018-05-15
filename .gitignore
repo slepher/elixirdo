@@ -23,3 +23,5 @@ erl_crash.dump
 elixirdo-*.tar
 
 /.elixir_ls/
+
+mix.lock

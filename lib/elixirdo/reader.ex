@@ -1,10 +1,9 @@
 defmodule Elixirdo.Reader do
   use Elixirdo.Base
+  use Elixirdo.Expand
 
   import Elixirdo.Typeclass.Functor, only: [functor: 0]
   import Elixirdo.Typeclass.Applicative, only: [applicative: 0]
-
-  deftype reader(r, a) :: (r -> a)
 
   definstance functor reader(r) do
 

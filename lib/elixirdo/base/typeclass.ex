@@ -16,11 +16,8 @@ defmodule Elixirdo.Base.Typeclass do
     Module.put_attribute(module, :class_param, class_param)
     Module.put_attribute(module, :functions, [])
     block = Elixirdo.Base.Utils.rename_macro(:def, :__defclass_def, block)
-
     quote do
-
       unquote(block)
-
       Elixirdo.Base.Typeclass.typeclass_macro(unquote(class_name), unquote(module))
     end
   end
@@ -114,7 +111,7 @@ defmodule Elixirdo.Base.Typeclass do
         Elixirdo.Base.Undetermined.map_list(
           fn [unquote_splicing(t_params)], type ->
             unquote_splicing(
-              trans_vars(rest_arities, param_types, param_names, class_name, class_param, module)
+              trans_vars(rest_arities, param_types, param_names, quote(do: type), class_param, module)
             )
             module = Elixirdo.Base.Generated.module(type, unquote(class_name))
             module.unquote(name)(unquote_splicing(params))
@@ -152,7 +149,7 @@ defmodule Elixirdo.Base.Typeclass do
   ##              param_return = param.(param_1, param_2, param_3)
   ##              Undetermined.run(param_return, class_name)
   ##         end
-  def trans_var({:->, fn_param_types, fn_return_type}, var_name, class_name, class_param, module, is_return_var) do
+  def trans_var({:->, fn_param_types, fn_return_type}, var_name, class_var, class_param, module, is_return_var) do
 
     fn_param_arity = length(fn_param_types)
 
@@ -176,13 +173,13 @@ defmodule Elixirdo.Base.Typeclass do
       quote do
         fn unquote_splicing(fn_params) ->
           unquote_splicing(
-            trans_vars(:lists.seq(1, fn_param_arity), fn_param_types, fn_param_names, class_name, class_param, module)
+            trans_vars(:lists.seq(1, fn_param_arity), fn_param_types, fn_param_names, class_var, class_param, module)
           )
 
           unquote(fn_return) = unquote(var).(unquote_splicing(fn_params))
 
           unquote(
-            trans_var(fn_return_type, fn_return_name, class_name, class_param, module, true)
+            trans_var(fn_return_type, fn_return_name, class_var, class_param, module, true)
           )
         end
       end
@@ -190,22 +187,22 @@ defmodule Elixirdo.Base.Typeclass do
     quote_assign(var, var_expression, is_return_var)
   end
 
-  def trans_var(class_param, var_name, class_name, class_param, module, is_return_var) do
+  def trans_var(class_param, var_name, class_var, class_param, module, is_return_var) do
     var = Macro.var(String.to_atom(var_name), module)
 
     var_expression =
       quote do
-        Elixirdo.Base.Undetermined.run(unquote(var), unquote(class_name))
+        Elixirdo.Base.Undetermined.run(unquote(var), unquote(class_var))
       end
 
     quote_assign(var, var_expression, is_return_var)
   end
 
-  def trans_var(_var_type, _var_name, _class_name, _class_param, _module, false) do
+  def trans_var(_var_type, _var_name, _class_var, _class_param, _module, false) do
     nil
   end
 
-  def trans_var(_var_type, var_name, _class_name, _class_param, module, true) do
+  def trans_var(_var_type, var_name, _class_var, _class_param, module, true) do
     Macro.var(String.to_atom(var_name), module)
   end
 

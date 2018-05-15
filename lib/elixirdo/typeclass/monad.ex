@@ -2,9 +2,11 @@ defmodule Elixirdo.Typeclass.Monad do
   use Elixirdo.Base
   use Elixirdo.Expand
 
-  defclass monad m, m: applicative do
+  alias Elixirdo.Typeclass.Applicative
+
+  defclass monad(m, m: applicative) do
     def return(a: a) :: m(a) do
-      m.pure(a)
+      Applicative.pure(a, m)
     end
 
     def bind(m(a), (a -> m(b))) :: m(b)
@@ -14,7 +16,6 @@ defmodule Elixirdo.Typeclass.Monad do
     end
   end
 
-
   def join(mma, monad \\ :monad) do
     bind(mma, fn ma -> ma end, monad)
   end
@@ -22,5 +23,4 @@ defmodule Elixirdo.Typeclass.Monad do
   def lift_m(f, ma, monad \\ :monad) do
     bind(ma, fn a -> return(f.(a), monad) end, monad)
   end
-
 end

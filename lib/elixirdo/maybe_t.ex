@@ -8,10 +8,13 @@ defmodule Elixirdo.MaybeT do
   import Elixirdo.Typeclass.Applicative, only: [applicative: 0]
 
   use Elixirdo.Base
+  use Elixirdo.Expand
 
   defstruct [:data]
 
-  deftype maybe_t(m, a) :: %MaybeT{data: m(maybe(a))}
+  expand do
+    deftype maybe_t(_m, _a) :: %MaybeT{data: any()}
+  end
 
   definstance functor maybe_t(m)  do
     def fmap(f, mta) do

@@ -8,7 +8,8 @@ defmodule Elixirdo.Maybe do
   import Elixirdo.Typeclass.Monad, only: [monad: 0]
 
   require Integer
-  deftype(maybe(a) :: {:just, a} | :nothing)
+  deftype maybe(A) :: {:just, A} | :nothing
+
 
   definstance functor(maybe) do
     def fmap(f, {:just, x}) do
@@ -36,6 +37,7 @@ defmodule Elixirdo.Maybe do
     def ap({:just, f}, {:just, a}) do
       {:just, f.(a)}
     end
+
   end
 
   definstance monad(maybe) do

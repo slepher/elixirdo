@@ -6,12 +6,20 @@ defmodule Elixirdo.Expand do
   end
 
   defmacro expand(do: block) do
-    line = __CALLER__.line
-    file = __CALLER__.file |> Path.relative_to_cwd()
-    IO.puts file <> ":" <> Integer.to_string(line)
     expanded_block = block |> Macro.expand(__CALLER__)
-    expanded_block |> Macro.to_string |> IO.puts
+    expanded_block |> Macro.to_string |> add_tab() |> append_env(__CALLER__) |> IO.puts
     expanded_block
   end
 
+  def append_env(string, caller) do
+    line = caller.line
+    file = caller.file |> Path.relative_to_cwd()
+    file <> ":" <> Integer.to_string(line) <> "\n" <> string
+  end
+
+  def add_tab(string) do
+    lines = String.split(string, "\n")
+    lines = :lists.map(fn line -> "  " <> line end, lines)
+    Enum.join(lines, "\n")
+  end
 end

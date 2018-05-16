@@ -8,7 +8,8 @@ defmodule Elixirdo.MixProject do
       elixir: "~> 1.6",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
-      compilers: Mix.compilers() ++ [:elixirdo]
+      compilers: Mix.compilers() ++ [:elixirdo],
+      dialyzer: [plt_add_apps: [:mix, :hipe, :dialyzer]]
     ]
   end
 
@@ -23,7 +24,8 @@ defmodule Elixirdo.MixProject do
   defp deps do
     [
       {:mex, "~> 0.0.1", only: :dev},
-      {:ast_traverse, github: "slepher/ast_traverse"}
+      {:ast_traverse, github: "slepher/ast_traverse"},
+      {:dialyxir, "~> 0.5", only: [:dev], runtime: false}
       # {:dep_from_hexpm, "~> 0.3.0"},
       # {:dep_from_git, git: "https://github.com/elixir-lang/my_dep.git", tag: "0.1.0"},
     ]

@@ -44,6 +44,10 @@ defmodule Elixirdo.Base.Type do
     :dbg.tpl(:type_expansion, :table_find_form, :cx)
     :dbg.p(self(), [:c])
     rec_table = :ets.new(:rec_table, [:protected])
+    module_table = :ets.new(:module_table, [:protected])
+    type_table = :ets.new(:type_table, [:protected, :bag])
+    error_table = :ets.new(:error_table, [:protected, :bag])
+
     mfas =
       Utils.extract_matching_by_attribute(paths, 'Elixir.', fn module, attributes ->
         case attributes[:elixirdo_type] do
@@ -53,26 +57,42 @@ defmodule Elixirdo.Base.Type do
             {module, type, arity, inner_type}
         end
       end)
-    {_, _, expanded_types} =
+    expanded_types =
       :lists.foldl(
-        fn {module, name, arity, inner_type}, {modules_loaded, types, acc} ->
+        fn {module, name, arity, inner_type}, acc ->
         case inner_type do
             false ->
-              case :type_expansion.expand(module, name, arity, modules_loaded, types, rec_table) do
+              case :type_expansion.expand(module, name, arity, rec_table, module_table, type_table, error_table) do
                 :error ->
-                  IO.inspect :ets.tab2list(rec_table)
-                  {modules_loaded, types, acc}
-                {:ok, {type, modules_loaded, types}} ->
+                  acc
+                {:ok, type} ->
                   acc = [{module, name, arity, type} | acc]
-                  {modules_loaded, types, acc}
+                  acc
               end
             true ->
-              {modules_loaded, types, acc}
+              acc
             end
-        end,
-        {:maps.new(), :sets.new(), []},
+        end, [],
         mfas
       )
+    format_error_table(error_table)
     expanded_types
+  end
+
+  def format_error_table(error_table) do
+    IO.inspect :type_expansion.dialyzer_utils()
+    errors = :ets.tab2list(error_table)
+    case :ets.tab2list(error_table) do
+      [] ->
+        :ok
+      errors ->
+        Enum.map(:ets.tab2list(error_table),
+          fn {{module, type, arity}, at_module, line} ->
+              Mix.shell.error("type not defined #{module}:#{type}/#{arity} at #{at_module}:#{line}")
+            {module, at_module, line} ->
+              Mix.shell.error("module could not loaded #{module} at #{at_module}:#{line}")
+        end)
+        Mix.raise("compile failed")
+      end
   end
 end

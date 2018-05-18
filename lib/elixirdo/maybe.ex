@@ -8,7 +8,7 @@ defmodule Elixirdo.Maybe do
   import Elixirdo.Typeclass.Monad, only: [monad: 0]
 
   require Integer
-  deftype maybe(A) :: {:just, A} | :nothing
+  deftype maybe(a) :: {:just, a} | :nothing
 
 
   definstance functor(maybe) do

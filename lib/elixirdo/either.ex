@@ -2,7 +2,7 @@ defmodule Elixirdo.Either do
   use Elixirdo.Base
   use Elixirdo.Expand
 
-  deftype either(e, a) :: {:just, a} | {:error, e}
+  deftype either(e, a) :: {:left, a} | {:right, e}
 
   def either(fac, fbc) do
     fn eab ->

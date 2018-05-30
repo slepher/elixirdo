@@ -10,6 +10,8 @@ defmodule Elixirdo.Maybe do
   require Integer
   deftype maybe(a) :: {:just, a} | :nothing
 
+  @type maybe_x() :: any()
+
 
   definstance functor(maybe) do
     def fmap(f, {:just, x}) do

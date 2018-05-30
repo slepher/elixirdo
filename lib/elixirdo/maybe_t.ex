@@ -12,9 +12,7 @@ defmodule Elixirdo.MaybeT do
 
   defstruct [:data]
 
-  expand do
-    deftype maybe_t(_m, _a) :: %MaybeT{data: any()}
-  end
+  deftype maybe_t(_m, _a) :: %MaybeT{data: any()}
 
   definstance functor maybe_t(m)  do
     def fmap(f, mta) do

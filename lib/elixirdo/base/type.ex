@@ -2,7 +2,7 @@ defmodule Elixirdo.Base.Type do
   alias Elixirdo.Base.Utils
 
   require Record
-  Record.defrecord :cache, Record.extract(:cache, from_lib: "hipe/cerl/erl_types.erl")
+  Record.defrecord(:cache, Record.extract(:cache, from_lib: "hipe/cerl/erl_types.erl"))
 
   defstruct [:module, :name, :details]
 
@@ -40,55 +40,68 @@ defmodule Elixirdo.Base.Type do
   end
 
   def extract_elixirdo_types(paths) do
-    rec_table = :ets.new(:rec_table, [:protected])
-    module_table = :ets.new(:module_table, [:protected])
-    type_table = :ets.new(:type_table, [:protected, :bag])
-    error_table = :ets.new(:error_table, [:protected, :bag])
-    cache = :type_expansion.cache(rec_table, module_table, type_table, error_table)
+    cache = :type_expansion.cache()
+
     mfas =
       Utils.extract_matching_by_attribute(paths, 'Elixir.', fn module, attributes ->
         case attributes[:elixirdo_type] do
           nil ->
             nil
+
           [{type, arity, inner_type}] ->
             {module, type, arity, inner_type}
         end
       end)
+
     expanded_types =
       :lists.foldl(
         fn {module, name, arity, inner_type}, acc ->
-        case inner_type do
+          case inner_type do
             false ->
               case :type_expansion.expand(module, name, arity, cache) do
                 :error ->
                   acc
+
                 {:ok, type} ->
                   acc = [{module, name, arity, type} | acc]
                   acc
               end
+
             true ->
               acc
-            end
-        end, [],
+          end
+        end,
+        [],
         mfas
       )
-    format_error_table(error_table)
-    expanded_types |> IO.inspect
-    expanded_types |> Enum.map(fn {_module, name, _arity, type} -> {name, :type_expansion.type_to_clause(type)} end)
+
+    errors = :type_expansion.cache_errors(cache)
+    :type_expansion.finalize_cache(cache)
+    :type_expansion.types_and_rec_map(Elixirdo.Maybe) |> IO.inspect(label: "maybe")
+
+    format_errors(errors)
+    expanded_types |> IO.inspect()
+
+    expanded_types
+    |> Enum.map(fn {_module, name, _arity, type} ->
+      {name, :type_formal_trans.to_clauses(type)}
+    end)
   end
 
-  def format_error_table(error_table) do
-    case :ets.tab2list(error_table) do
+  def format_errors(errors) do
+    case errors do
       [] ->
         :ok
-      errors ->
-        Enum.map(errors,
-          fn {{module, type, arity}, at_module, line} ->
-              Mix.shell.error("type not defined #{module}:#{type}/#{arity} at #{at_module}:#{line}")
-            {module, at_module, line} ->
-              Mix.shell.error("module could not loaded #{module} at #{at_module}:#{line}")
+      _ ->
+        Enum.map(errors, fn
+          {{module, type, arity}, at_module, line} ->
+            Mix.shell().error(
+              "type not defined #{module}:#{type}/#{arity} at #{at_module}:#{line}"
+            )
+          {module, at_module, line} ->
+            Mix.shell().error("module could not loaded #{module} at #{at_module}:#{line}")
         end)
         Mix.raise("compile failed")
-      end
+    end
   end
 end

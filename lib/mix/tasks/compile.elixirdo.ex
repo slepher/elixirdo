@@ -10,12 +10,14 @@ defmodule Mix.Tasks.Compile.Elixirdo do
     {opts, _, _} = OptionParser.parse(args, switches: [force: :boolean, verbose: :boolean])
 
     manifest = manifest()
-    output = Mix.Project.compile_path(config)
+    output = Mix.Project.consolidation_path(config)
 
     paths = consolidation_paths()
 
-    paths |> Elixirdo.Base.Type.extract_elixirdo_types() |> IO.inspect()
-    generate_test_module(output)
+    type_function = Elixirdo.Base.Type.extract_elixirdo_types(paths)
+    typeclass_function = Elixirdo.Base.Typeclass.extract_elixirdo_typeclasses(paths)
+    instance_function = Elixirdo.Base.Instance.extract_elixirdo_instances(paths)
+    generate_test_module(output, type_function, typeclass_function, instance_function)
   end
 
   def manifest, do: Path.join(Mix.Project.manifest_path(), @manifest)
@@ -28,16 +30,16 @@ defmodule Mix.Tasks.Compile.Elixirdo do
     Enum.filter(paths, &(not :lists.prefix(&1, otp)))
   end
 
-  def generate_test_module(output) do
+  def generate_test_module(output, type_function, typeclass_function, instance_function) do
+    File.mkdir_p!(output)
 
-    content =
-      quote do
-        defmodule Elixirdo.Base.Type.Generated do
-          def hello() do
-            :world
-          end
-        end
+    content = quote do
+      defmodule Elixirdo.Base.Generated do
+        unquote(type_function)
+        unquote(typeclass_function)
+        unquote(instance_function)
       end
+    end
 
     Code.compiler_options(ignore_module_conflict: true)
     [{module, binary}] = Code.compile_quoted(content)

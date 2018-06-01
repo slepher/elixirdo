@@ -10,7 +10,7 @@ defmodule Elixirdo.Maybe do
   require Integer
   deftype maybe(a) :: {:just, a} | :nothing
 
-  @type maybe_x() :: any()
+  @opaque maybe_x(a) :: {:justx, a} | :nothing
 
 
   definstance functor(maybe) do

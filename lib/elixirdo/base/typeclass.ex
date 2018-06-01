@@ -5,6 +5,7 @@ defmodule Elixirdo.Base.Typeclass do
     quote do
       import Elixirdo.Base.Typeclass,
         only: [defclass: 2, __defclass_def: 1, __defclass_def: 2, __defclass_def: 3]
+        Module.register_attribute(__MODULE__, :elixirdo_typeclass, accumulate: false, persist: true)
     end
   end
 
@@ -16,7 +17,10 @@ defmodule Elixirdo.Base.Typeclass do
     Module.put_attribute(module, :class_param, class_param)
     Module.put_attribute(module, :functions, [])
     block = Elixirdo.Base.Utils.rename_macro(:def, :__defclass_def, block)
+
     quote do
+      @elixirdo_typeclass unquote(class_name)
+
       unquote(block)
       Elixirdo.Base.Typeclass.typeclass_macro(unquote(class_name), unquote(module))
     end
@@ -104,15 +108,23 @@ defmodule Elixirdo.Base.Typeclass do
 
     default_impl = default_impl(name, class_param, def_spec, block)
 
-    Utils.update_attribute(module, :functions, fn functions -> [{name, arity}|functions] end)
+    Utils.update_attribute(module, :functions, fn functions -> [{name, arity} | functions] end)
 
     quote do
       Kernel.def unquote(name)(unquote_splicing(out_params)) do
         Elixirdo.Base.Undetermined.map_list(
           fn [unquote_splicing(t_params)], type ->
             unquote_splicing(
-              trans_vars(rest_arities, param_types, param_names, quote(do: type), class_param, module)
+              trans_vars(
+                rest_arities,
+                param_types,
+                param_names,
+                quote(do: type),
+                class_param,
+                module
+              )
             )
+
             module = Elixirdo.Base.Generated.module(type, unquote(class_name))
             module.unquote(name)(unquote_splicing(params))
           end,
@@ -149,8 +161,14 @@ defmodule Elixirdo.Base.Typeclass do
   ##              param_return = param.(param_1, param_2, param_3)
   ##              Undetermined.run(param_return, class_name)
   ##         end
-  def trans_var({:->, fn_param_types, fn_return_type}, var_name, class_var, class_param, module, is_return_var) do
-
+  def trans_var(
+        {:->, fn_param_types, fn_return_type},
+        var_name,
+        class_var,
+        class_param,
+        module,
+        is_return_var
+      ) do
     fn_param_arity = length(fn_param_types)
 
     fn_param_names =
@@ -173,14 +191,19 @@ defmodule Elixirdo.Base.Typeclass do
       quote do
         fn unquote_splicing(fn_params) ->
           unquote_splicing(
-            trans_vars(:lists.seq(1, fn_param_arity), fn_param_types, fn_param_names, class_var, class_param, module)
+            trans_vars(
+              :lists.seq(1, fn_param_arity),
+              fn_param_types,
+              fn_param_names,
+              class_var,
+              class_param,
+              module
+            )
           )
 
           unquote(fn_return) = unquote(var).(unquote_splicing(fn_params))
 
-          unquote(
-            trans_var(fn_return_type, fn_return_name, class_var, class_param, module, true)
-          )
+          unquote(trans_var(fn_return_type, fn_return_name, class_var, class_param, module, true))
         end
       end
 
@@ -222,11 +245,13 @@ defmodule Elixirdo.Base.Typeclass do
       params = :lists.map(fn param -> Macro.var(param, nil) end, params ++ [class_param])
       name = String.to_atom("__default__" <> Atom.to_string(name))
 
-      [quote do
-        Kernel.def unquote(name)(unquote_splicing(params)) do
-          unquote(block)
+      [
+        quote do
+          Kernel.def unquote(name)(unquote_splicing(params)) do
+            unquote(block)
+          end
         end
-      end]
+      ]
     else
       []
     end
@@ -262,5 +287,33 @@ defmodule Elixirdo.Base.Typeclass do
 
   def match_class_param(_type_param, _class_param) do
     false
+  end
+
+  def extract_elixirdo_typeclasses(paths) do
+    classes =
+      Utils.extract_matching_by_attribute(paths, 'Elixir.', fn _module, attributes ->
+        case attributes[:elixirdo_typeclass] do
+          nil ->
+            nil
+
+          [type_class] ->
+            type_class
+        end
+      end)
+    class_clauses = classes |> Enum.map(fn class -> class_clause(class) end)
+    quote do
+      unquote_splicing(class_clauses)
+      def is_typeclass(_) do
+        false
+      end
+    end
+  end
+
+  def class_clause(class_name) do
+    quote do
+      def is_typeclass(unquote(class_name)) do
+        true
+      end
+    end
   end
 end

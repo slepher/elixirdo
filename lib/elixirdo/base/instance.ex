@@ -5,6 +5,7 @@ defmodule Elixirdo.Base.Instance do
   defmacro __using__(_) do
     quote do
       import Elixirdo.Base.Instance, only: [definstance: 2, __definstance_def: 2]
+      Module.register_attribute(__MODULE__, :elixirdo_instance, accumulate: true, persist: true)
     end
   end
 
@@ -15,10 +16,11 @@ defmodule Elixirdo.Base.Instance do
     Module.put_attribute(module, :class_name, class_name)
     Module.put_attribute(module, :class_param, class_param)
     Module.put_attribute(module, :functions, [])
+    typename = Module.get_attribute(module, :elixirdo_typename)
     block = Elixirdo.Base.Utils.rename_macro(:def, :__definstance_def, block)
-
     quote do
       unquote(class_name)()
+      @elixirdo_instance [{unquote(class_name), unquote(typename)}]
       unquote(block)
       Elixirdo.Base.Instance.after_definstance()
     end
@@ -101,5 +103,35 @@ defmodule Elixirdo.Base.Instance do
         unquote(block)
       end
     end
+  end
+
+  def extract_elixirdo_instances(paths) do
+     instances =
+      Utils.extract_matching_by_attribute(paths, 'Elixir.', fn module, attributes ->
+        case attributes[:elixirdo_instance] do
+          nil ->
+            nil
+          instance_classes ->
+            {module, instance_classes}
+        end
+      end)
+    instance_clauses = instances
+      |> Enum.map(fn {module, instance_classes} -> instance_clause(module, instance_classes) end)
+      |> :lists.flatten()
+    quote do
+      unquote_splicing(instance_clauses)
+    end
+  end
+
+  def instance_clause(module, instances) do
+    instances |> Enum.map(
+      fn {class, instance} ->
+        quote do
+          def module(unquote(instance), unquote(class)) do
+            unquote(module)
+          end
+        end
+      end
+    )
   end
 end

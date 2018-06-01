@@ -10,7 +10,7 @@ defmodule Mix.Tasks.Compile.Elixirdo do
     {opts, _, _} = OptionParser.parse(args, switches: [force: :boolean, verbose: :boolean])
 
     manifest = manifest()
-    output = Mix.Project.consolidation_path(config)
+    output = Mix.Project.compile_path(config)
 
     paths = consolidation_paths()
 

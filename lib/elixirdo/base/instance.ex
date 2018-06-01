@@ -16,11 +16,10 @@ defmodule Elixirdo.Base.Instance do
     Module.put_attribute(module, :class_name, class_name)
     Module.put_attribute(module, :class_param, class_param)
     Module.put_attribute(module, :functions, [])
-    typename = Module.get_attribute(module, :elixirdo_typename)
     block = Elixirdo.Base.Utils.rename_macro(:def, :__definstance_def, block)
     quote do
       unquote(class_name)()
-      @elixirdo_instance [{unquote(class_name), unquote(typename)}]
+      @elixirdo_instance [{unquote(class_name), unquote(class_param)}]
       unquote(block)
       Elixirdo.Base.Instance.after_definstance()
     end

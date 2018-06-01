@@ -15,7 +15,6 @@ defmodule Elixirdo.Base.Type do
 
   defmacro deftype([{name, arity}]) do
     module = __CALLER__.module
-    Module.put_attribute(module, :elixirdo_typename, name)
     quote do
       @elixirdo_type {unquote(name), unquote(arity), true}
     end

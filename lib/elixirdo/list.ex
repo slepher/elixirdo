@@ -9,7 +9,7 @@ defmodule Elixirdo.List do
   import Applicative, only: [applicative: 0]
   import Elixirdo.Typeclass.Traversable, only: [traversable: 0]
 
-  deftype list: 1
+  deftype anonymous(a) :: list(a), as: :list
 
   definstance functor list do
     def fmap(f, xs) do

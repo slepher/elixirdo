@@ -8,35 +8,34 @@ defmodule Elixirdo.Base.Type do
 
   defmacro __using__(_) do
     quote do
-      import Elixirdo.Base.Type, only: [deftype: 1]
+      import Elixirdo.Base.Type, only: [deftype: 1, deftype: 2]
       Module.register_attribute(__MODULE__, :elixirdo_type, accumulate: false, persist: true)
     end
   end
 
   defmacro deftype([{name, arity}]) do
-    module = __CALLER__.module
     quote do
       @elixirdo_type {unquote(name), unquote(arity), true}
     end
   end
 
-  defmacro deftype({:::, _, [{name, _, args}, _type_defs]} = spec) do
-    arity = length(args)
+  defmacro deftype({:::, _, [{name, _, _args}, _type_defs]} = spec) do
     module = __CALLER__.module
-    Module.put_attribute(module, :elixirdo_typename, name)
-    quote do
-      @type unquote(spec)
-      @elixirdo_type {unquote(name), unquote(arity), false}
-      unquote_splicing([do_deftype(name, __CALLER__, spec)])
-    end
+    do_deftype(module, spec, [as: name])
   end
 
-  def do_deftype(name, caller, _spec) do
-    module = caller.module
+  defmacro deftype({:::, _, [{_name, _, _args}, _type_defs]} = spec, [as: as]) do
+    module = __CALLER__.module
+    do_deftype(module, spec, [as: as])
+  end
 
+  def do_deftype(module, {:::, _, [{name, _, args}, _type_defs]} = spec, [as: as]) do
+    arity = length(args)
     quote do
+      @type unquote(spec)
+      @elixirdo_type {unquote(name), unquote(arity), unquote(as)}
       def type() do
-        %Elixirdo.Base.Type{module: unquote(module), name: unquote(name)}
+        %Elixirdo.Base.Type{module: unquote(module), name: unquote(as)}
       end
     end
   end
@@ -57,26 +56,18 @@ defmodule Elixirdo.Base.Type do
 
     expanded_types =
       :lists.foldl(
-        fn {module, name, arity, inner_type}, acc ->
-          case inner_type do
-            false ->
+        fn {module, name, arity, as}, acc ->
               case :type_expansion.expand(module, name, arity, cache) do
                 :error ->
                   acc
-
                 {:ok, type} ->
-                  acc = [{module, name, arity, type} | acc]
+                  acc = [{module, as, type} | acc]
                   acc
               end
-
-            true ->
-              acc
-          end
         end,
         [],
         mfas
       )
-
     errors = :type_expansion.cache_errors(cache)
     :type_expansion.finalize_cache(cache)
 
@@ -88,7 +79,7 @@ defmodule Elixirdo.Base.Type do
 
   def types_to_clauses(expanded_types) do
     expanded_types
-    |> Enum.map(fn {module, name, _arity, type} ->
+    |> Enum.map(fn {module, name, type} ->
         to_clauses(module, name, type)
     end) |> :lists.flatten
   end

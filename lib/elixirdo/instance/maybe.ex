@@ -1,4 +1,4 @@
-defmodule Elixirdo.Maybe do
+defmodule Elixirdo.Instance.Maybe do
   use Elixirdo.Base
   use Elixirdo.Expand
   alias Elixirdo.Base.Undetermined

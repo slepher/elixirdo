@@ -1,4 +1,4 @@
-defmodule Elixirdo.Function do
+defmodule Elixirdo.Instance.Function do
   use Elixirdo.Base
 
   import Elixirdo.Typeclass.Functor, only: [functor: 0]

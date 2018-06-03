@@ -1,4 +1,4 @@
-defmodule Elixirdo.Reader do
+defmodule Elixirdo.Instance.Reader do
   use Elixirdo.Base
   use Elixirdo.Expand
 

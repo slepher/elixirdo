@@ -122,7 +122,7 @@ defmodule Elixirdo.Base.Type do
     end
   end
 
-  def format_var(module, {:map, [__struct__: Elixirdo.MaybeT]}) do
+  def format_var(module, {:map, [__struct__: module]}) do
     quote do
       %unquote(module){}
     end

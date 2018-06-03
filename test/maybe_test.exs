@@ -4,7 +4,7 @@ defmodule MaybeTest do
   alias Elixirdo.Typeclass.Applicative
   alias Elixirdo.Typeclass.Monad
 
-  doctest Elixirdo.Maybe
+  doctest Elixirdo.Instance.Maybe
 
   @tag timeout: 1000
   test "fmap" do

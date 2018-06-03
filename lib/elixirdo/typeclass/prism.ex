@@ -3,8 +3,8 @@ defmodule Elixirdo.Prism do
   alias Elixirdo.Typeclass.Applicative
   alias Elixirdo.Typeclass.Profunctor
   alias Elixirdo.Typeclass.Choice
-  alias Elixirdo.Function
-  alias Elixirdo.Either
+  alias Elixirdo.Instance.Function
+  alias Elixirdo.Instance.Either
 
   def prism(bt, s_either_ta) do
     #  functor:fmap(BT) :: f b -> f t

@@ -1,9 +1,9 @@
 defmodule MaybeTTest do
   use ExUnit.Case
-  alias Elixirdo.MaybeT
+  alias Elixirdo.Instance.MaybeT
   alias Elixirdo.Typeclass.Functor
   alias Elixirdo.Typeclass.Applicative
-  doctest Elixirdo.MaybeT
+  doctest Elixirdo.Instance.MaybeT
 
   @tag timeout: 1000
   test "fmap" do
@@ -13,9 +13,9 @@ defmodule MaybeTTest do
 
   @tag timeout: 1000
   test "ap" do
-    mtf = %MaybeT{data: {:just, {:just, fn a -> a * 2 end}}}
-    mta = %MaybeT{data: {:just, {:just, 1}}}
-    mtb = %MaybeT{data: {:just, {:just, 2}}}
+    mtf = %MaybeT{data: {:right, {:just, fn a -> a * 2 end}}}
+    mta = %MaybeT{data: {:right, {:just, 1}}}
+    mtb = %MaybeT{data: {:right, {:just, 2}}}
     assert mtb == Applicative.ap(mtf, mta)
   end
 end

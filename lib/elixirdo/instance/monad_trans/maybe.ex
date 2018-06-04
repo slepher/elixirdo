@@ -1,6 +1,6 @@
-defmodule Elixirdo.Instance.MonadTrans.MaybeT do
+defmodule Elixirdo.Instance.MonadTrans.Maybe do
 
-  alias Elixirdo.Instance.MonadTrans.MaybeT
+  alias Elixirdo.Instance.MonadTrans.Maybe
 
   use Elixirdo.Base
   use Elixirdo.Expand
@@ -8,7 +8,7 @@ defmodule Elixirdo.Instance.MonadTrans.MaybeT do
 
   defstruct [:data]
 
-  deftype(maybe_t(_m, _a) :: %MaybeT{data: any()})
+  deftype(maybe_t(_m, _a) :: %Maybe{data: any()})
 
   definstance functor(maybe_t(m)) do
     def fmap(f, mta) do
@@ -57,10 +57,10 @@ defmodule Elixirdo.Instance.MonadTrans.MaybeT do
   end
 
   def maybe_t(data) do
-    %MaybeT{data: data}
+    %Maybe{data: data}
   end
 
-  def run_maybe_t(%MaybeT{data: data}) do
+  def run_maybe_t(%Maybe{data: data}) do
     data
   end
 end

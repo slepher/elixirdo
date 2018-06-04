@@ -21,19 +21,33 @@ defmodule Elixirdo.Base.Type do
 
   defmacro deftype({:::, _, [{name, _, _args}, _type_defs]} = spec) do
     module = __CALLER__.module
-    do_deftype(module, spec, [as: name])
+    do_deftype(module, spec, as: name)
   end
 
-  defmacro deftype({:::, _, [{_name, _, _args}, _type_defs]} = spec, [as: as]) do
+  defmacro deftype(spec, opts) do
     module = __CALLER__.module
-    do_deftype(module, spec, [as: as])
+    do_deftype(module, spec, opts)
   end
 
-  def do_deftype(_module, {:::, _, [{name, _, args}, _type_defs]} = spec, [as: as]) do
+  def do_deftype(_module, {:::, _, [{name, _, args}, _type_defs]} = spec, opts) do
+    as = Keyword.get(opts, :as)
+    exported = Keyword.get(opts, :export, true)
     arity = length(args)
+
+    elixirdo_type =
+      if exported do
+        [
+          quote do
+            @elixirdo_type {unquote(name), unquote(arity), unquote(as)}
+          end
+        ]
+      else
+        []
+      end
+
     quote do
       @type unquote(spec)
-      @elixirdo_type {unquote(name), unquote(arity), unquote(as)}
+      unquote_splicing(elixirdo_type)
     end
   end
 
@@ -45,62 +59,69 @@ defmodule Elixirdo.Base.Type do
         case attributes[:elixirdo_type] do
           nil ->
             nil
+
           types ->
-            types |> Enum.map(fn {type, arity, inner_type} -> {module, type, arity, inner_type} end)
+            types
+            |> Enum.map(fn {type, arity, inner_type} -> {module, type, arity, inner_type} end)
         end
       end)
 
     expanded_types =
       :lists.foldl(
         fn {module, name, arity, as}, acc ->
-              case :type_expansion.expand(module, name, arity, cache) do
-                :error ->
-                  acc
-                {:ok, type} ->
-                  acc = [{module, as, type} | acc]
-                  acc
-              end
+          case :type_expansion.expand(module, name, arity, cache) do
+            :error ->
+              acc
+
+            {:ok, type} ->
+              acc = [{module, as, type} | acc]
+              acc
+          end
         end,
         [],
         :lists.flatten(mfas)
       )
+
     errors = :type_expansion.cache_errors(cache)
     :type_expansion.finalize_cache(cache)
 
     format_errors(errors)
+
     quote do
-      unquote_splicing(types_to_clauses(expanded_types))
+      (unquote_splicing(types_to_clauses(expanded_types)))
     end
   end
 
   def types_to_clauses(expanded_types) do
     expanded_types
     |> Enum.map(fn {module, name, type} ->
-        to_clauses(module, name, type)
-    end) |> :lists.flatten
+      to_clauses(module, name, type)
+    end)
+    |> :lists.flatten()
   end
 
   def to_clauses(module, type_name, type) do
     clauses = :type_formal_trans.to_clauses(type)
-    clauses |> Enum.map(
-      fn {type_var, type_guards} ->
-        var = format_var(module, type_var)
-        guards = format_guards(module, type_guards)
-        if guards do
-          quote do
-            def type(unquote(var)) when unquote(guards) do
-              unquote(type_name)
-            end
+
+    clauses
+    |> Enum.map(fn {type_var, type_guards} ->
+      var = format_var(module, type_var)
+      guards = format_guards(module, type_guards)
+
+      if guards do
+        quote do
+          def type(unquote(var)) when unquote(guards) do
+            unquote(type_name)
           end
-        else
-          quote do
-            def type(unquote(var)) do
-              unquote(type_name)
-            end
+        end
+      else
+        quote do
+          def type(unquote(var)) do
+            unquote(type_name)
           end
         end
       end
-    )
+    end)
   end
 
   def format_var(module, {:var, 0}) do
@@ -113,6 +134,7 @@ defmodule Elixirdo.Base.Type do
 
   def format_var(module, {:tuple, tuples}) do
     formatted_tuples = tuples |> Enum.map(fn tuple -> format_var(module, tuple) end)
+
     quote do
       {unquote_splicing(formatted_tuples)}
     end
@@ -120,10 +142,13 @@ defmodule Elixirdo.Base.Type do
 
   def format_var(module, {:map, pairs}) do
     {struct_module, pairs} = Keyword.pop_first(pairs, :__struct__)
-    pairs = pairs |> Enum.map(
-      fn {key, value} ->
+
+    pairs =
+      pairs
+      |> Enum.map(fn {key, value} ->
         {format_var(module, key), format_var(module, value)}
       end)
+
     if struct_module do
       quote do
         %unquote(struct_module){unquote_splicing(pairs)}
@@ -142,9 +167,11 @@ defmodule Elixirdo.Base.Type do
   def format_guards(_module, []) do
     nil
   end
-  def format_guards(module, [guard|guards]) do
+
+  def format_guards(module, [guard | guards]) do
     formatted_guard = format_guard(module, guard)
     formatted_guards = format_guards(module, guards)
+
     if formatted_guards do
       quote do
         unquote(formatted_guard) and unquote(formatted_guards)
@@ -156,6 +183,7 @@ defmodule Elixirdo.Base.Type do
 
   def format_guard(module, {guard_function, n}) do
     var_name = var(module, n, "var")
+
     quote do
       unquote(guard_function)(unquote(var_name))
     end
@@ -170,15 +198,18 @@ defmodule Elixirdo.Base.Type do
     case errors do
       [] ->
         :ok
+
       _ ->
         Enum.map(errors, fn
           {{module, type, arity}, at_module, line} ->
             Mix.shell().error(
               "type not defined #{module}:#{type}/#{arity} at #{at_module}:#{line}"
             )
+
           {module, at_module, line} ->
             Mix.shell().error("module could not loaded #{module} at #{at_module}:#{line}")
         end)
+
         Mix.raise("compile failed")
     end
   end

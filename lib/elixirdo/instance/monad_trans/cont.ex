@@ -1,19 +1,19 @@
-defmodule Elixirdo.Instance.MonadTrans.ContT do
-  alias Elixirdo.Instance.MonadTrans.ContT
+defmodule Elixirdo.Instance.MonadTrans.Cont do
+  alias Elixirdo.Instance.MonadTrans.Cont
   use Elixirdo.Base.Type
   use Elixirdo.Base.Instance
   use Elixirdo.Typeclass.Monad
 
   defstruct [:data]
 
-  deftype(cont_t(r, m, a) :: %ContT{data: inner_cont_t(r, m, a)})
-  deftype(inner_cont_t(r, m, a) :: ((a -> Monad.m(m, r)) -> Monad.m(m, r)))
+  deftype(cont_t(r, m, a) :: %Cont{data: inner_cont_t(r, m, a)})
+  deftype(inner_cont_t(r, m, a) :: ((a -> Monad.m(m, r)) -> Monad.m(m, r)), export: false)
 
   def cont_t(inner) do
-    %ContT{data: inner}
+    %Cont{data: inner}
   end
 
-  def run_cont_t(%ContT{data: inner}) do
+  def run_cont_t(%Cont{data: inner}) do
     inner
   end
 

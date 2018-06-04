@@ -15,9 +15,14 @@ defmodule Mix.Tasks.Compile.Elixirdo do
     paths = consolidation_paths()
 
     type_function = Elixirdo.Base.Type.extract_elixirdo_types(paths)
+    type_function |> Macro.to_string |> IO.puts
     typeclass_function = Elixirdo.Base.Typeclass.extract_elixirdo_typeclasses(paths)
     instance_function = Elixirdo.Base.Instance.extract_elixirdo_instances(paths)
     generate_test_module(output, type_function, typeclass_function, instance_function)
+  end
+
+  def hello(%{:a => b}) when is_atom(b) do
+    :hello
   end
 
   def manifest, do: Path.join(Mix.Project.manifest_path(), @manifest)

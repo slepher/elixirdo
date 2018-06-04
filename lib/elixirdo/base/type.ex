@@ -122,9 +122,19 @@ defmodule Elixirdo.Base.Type do
     end
   end
 
-  def format_var(module, {:map, [__struct__: module]}) do
+  def format_var(_module, {:map, [__struct__: module]}) when is_atom(module) do
     quote do
       %unquote(module){}
+    end
+  end
+
+  def format_var(module, {:map, pairs}) do
+    pairs = pairs |> Enum.map(
+      fn {key, value} ->
+        {format_var(module, key), format_var(module, value)}
+      end)
+    quote do
+      %{unquote_splicing(pairs)}
     end
   end
 
@@ -135,7 +145,6 @@ defmodule Elixirdo.Base.Type do
   def format_guards(_module, []) do
     nil
   end
-
   def format_guards(module, [guard|guards]) do
     formatted_guard = format_guard(module, guard)
     formatted_guards = format_guards(module, guards)

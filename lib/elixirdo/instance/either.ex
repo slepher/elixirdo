@@ -2,9 +2,7 @@ defmodule Elixirdo.Instance.Either do
   use Elixirdo.Base
   use Elixirdo.Expand
 
-  import Elixirdo.Typeclass.Functor, only: [functor: 0]
-  import Elixirdo.Typeclass.Applicative, only: [applicative: 0]
-  import Elixirdo.Typeclass.Monad, only: [monad: 0]
+  use Elixirdo.Typeclass.Monad
 
   deftype either(e, a) :: {:left, a} | {:right, e}
 

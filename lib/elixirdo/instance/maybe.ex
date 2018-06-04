@@ -3,14 +3,9 @@ defmodule Elixirdo.Instance.Maybe do
   use Elixirdo.Expand
   alias Elixirdo.Base.Undetermined
 
-  import Elixirdo.Typeclass.Functor, only: [functor: 0]
-  import Elixirdo.Typeclass.Applicative, only: [applicative: 0]
-  import Elixirdo.Typeclass.Monad, only: [monad: 0]
+  use Elixirdo.Typeclass.Monad
 
-  require Integer
   deftype maybe(a) :: {:just, a} | :nothing
-
-  @opaque maybe_x(a) :: {:justx, a} | :nothing
 
 
   definstance functor(maybe) do

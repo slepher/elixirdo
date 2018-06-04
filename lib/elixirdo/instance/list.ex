@@ -2,14 +2,8 @@ defmodule Elixirdo.Instance.List do
   use Elixirdo.Base
   use Elixirdo.Expand
 
-  alias Elixirdo.Typeclass.Functor
-  alias Elixirdo.Typeclass.Applicative
-  alias Elixirdo.Typeclass.Monad
+  use Elixirdo.Typeclass.Monad
 
-
-  import Functor, only: [functor: 0]
-  import Applicative, only: [applicative: 0]
-  import Monad, only: [monad: 0]
   import Elixirdo.Typeclass.Traversable, only: [traversable: 0]
 
   deftype(anonymous(a) :: list(a), as: :list)

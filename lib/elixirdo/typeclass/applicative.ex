@@ -2,6 +2,14 @@ defmodule Elixirdo.Typeclass.Applicative do
   use Elixirdo.Base
   use Elixirdo.Expand
 
+  defmacro __using__(_) do
+    quote do
+      use Elixirdo.Typeclass.Functor
+      alias Elixirdo.Typeclass.Applicative
+      import Elixirdo.Typeclass.Applicative, only: [applicative: 0]
+    end
+  end
+
   defclass applicative(f, f: functor) do
     def pure(a) :: f(a)
 

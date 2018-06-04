@@ -4,6 +4,17 @@ defmodule Elixirdo.Typeclass.Monad do
 
   alias Elixirdo.Typeclass.Applicative
 
+  @type m(_m, _a) :: any()
+
+  defmacro __using__(_) do
+    quote do
+      use Elixirdo.Typeclass.Applicative
+      use Elixirdo.Notation.Do
+      alias Elixirdo.Typeclass.Monad
+      import Elixirdo.Typeclass.Monad, only: [monad: 0]
+    end
+  end
+
   defclass monad(m, m: applicative) do
     def return(a: a) :: m(a) do
       Applicative.pure(a, m)

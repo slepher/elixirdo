@@ -9,7 +9,7 @@ defmodule Elixirdo.Base.Type do
   defmacro __using__(_) do
     quote do
       import Elixirdo.Base.Type, only: [deftype: 1, deftype: 2]
-      Module.register_attribute(__MODULE__, :elixirdo_type, accumulate: false, persist: true)
+      Module.register_attribute(__MODULE__, :elixirdo_type, accumulate: true, persist: true)
     end
   end
 
@@ -29,14 +29,11 @@ defmodule Elixirdo.Base.Type do
     do_deftype(module, spec, [as: as])
   end
 
-  def do_deftype(module, {:::, _, [{name, _, args}, _type_defs]} = spec, [as: as]) do
+  def do_deftype(_module, {:::, _, [{name, _, args}, _type_defs]} = spec, [as: as]) do
     arity = length(args)
     quote do
       @type unquote(spec)
       @elixirdo_type {unquote(name), unquote(arity), unquote(as)}
-      def type() do
-        %Elixirdo.Base.Type{module: unquote(module), name: unquote(as)}
-      end
     end
   end
 
@@ -48,9 +45,8 @@ defmodule Elixirdo.Base.Type do
         case attributes[:elixirdo_type] do
           nil ->
             nil
-
-          [{type, arity, inner_type}] ->
-            {module, type, arity, inner_type}
+          types ->
+            types |> Enum.map(fn {type, arity, inner_type} -> {module, type, arity, inner_type} end)
         end
       end)
 
@@ -66,7 +62,7 @@ defmodule Elixirdo.Base.Type do
               end
         end,
         [],
-        mfas
+        :lists.flatten(mfas)
       )
     errors = :type_expansion.cache_errors(cache)
     :type_expansion.finalize_cache(cache)
@@ -122,19 +118,20 @@ defmodule Elixirdo.Base.Type do
     end
   end
 
-  def format_var(_module, {:map, [__struct__: module]}) when is_atom(module) do
-    quote do
-      %unquote(module){}
-    end
-  end
-
   def format_var(module, {:map, pairs}) do
+    {struct_module, pairs} = Keyword.pop_first(pairs, :__struct__)
     pairs = pairs |> Enum.map(
       fn {key, value} ->
         {format_var(module, key), format_var(module, value)}
       end)
-    quote do
-      %{unquote_splicing(pairs)}
+    if struct_module do
+      quote do
+        %unquote(struct_module){unquote_splicing(pairs)}
+      end
+    else
+      quote do
+        %{unquote_splicing(pairs)}
+      end
     end
   end
 

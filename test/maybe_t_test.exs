@@ -1,9 +1,9 @@
 defmodule MaybeTTest do
   use ExUnit.Case
-  alias Elixirdo.Instance.MaybeT
+  alias Elixirdo.Instance.MonadTrans.MaybeT
   alias Elixirdo.Typeclass.Functor
   alias Elixirdo.Typeclass.Applicative
-  doctest Elixirdo.Instance.MaybeT
+  doctest Elixirdo.Instance.MonadTrans.MaybeT
 
   @tag timeout: 1000
   test "fmap" do

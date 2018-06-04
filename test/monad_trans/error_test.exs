@@ -5,6 +5,9 @@ defmodule MonadTrans.ErrorTest do
   alias Elixirdo.Typeclass.Applicative
   doctest Elixirdo.Instance.MonadTrans.Error
 
+  use Elixirdo.Notation.Do
+  alias Elixirdo.Typeclass.Monad
+
   @tag timeout: 1000
   test "fmap" do
     f = fn a -> a * 2 end
@@ -17,5 +20,19 @@ defmodule MonadTrans.ErrorTest do
     mta = %Error{data: {:just, {:right, 1}}}
     mtb = %Error{data: {:just, {:right, 2}}}
     assert mtb == Applicative.ap(mtf, mta)
+  end
+
+  @tag timeout: 1000
+  test "bind" do
+    mta = %Error{data: {:just, {:right, 1}}}
+    mtb = %Error{data: {:just, {:right, 2}}}
+
+    mtc =
+      monad :monad do
+        a <- mta
+        Monad.return(a * 2)
+      end
+
+    assert mtb == mtc
   end
 end

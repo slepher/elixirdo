@@ -1,5 +1,5 @@
-defmodule Elixirdo.Instance.MonadTrans.Error do
-  alias Elixirdo.Instance.MonadTrans.Error
+defmodule Elixirdo.Instance.MonadTrans.Except do
+  alias Elixirdo.Instance.MonadTrans.Except
   alias Elixirdo.Instance.Either
 
   defstruct [:data]
@@ -9,14 +9,14 @@ defmodule Elixirdo.Instance.MonadTrans.Error do
   use Elixirdo.Base.Instance
   use Elixirdo.Expand
 
-  deftype(error_t(e, m, a) :: %Error{data: inner_error_t(e, m, a)})
+  deftype(error_t(e, m, a) :: %Except{data: inner_error_t(e, m, a)})
   deftype(inner_error_t(e, m, a) :: Monad.m(m, Either.either(e, a)), export: false)
 
   def error_t(m) do
-    %Error{data: m}
+    %Except{data: m}
   end
 
-  def run_error_t(%Error{data: inner}) do
+  def run_error_t(%Except{data: inner}) do
     inner
   end
 

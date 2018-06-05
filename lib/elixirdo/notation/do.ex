@@ -21,7 +21,7 @@ defmodule Elixirdo.Notation.Do do
     [h | t] = body |> normalize |> Enum.reverse
 
     Enum.reduce(t, h, fn
-      {:let, _, [{:=, _, [assign, value]}]}, continue ->
+      {:=, _, [assign, value]}, continue ->
         quote do: unquote(value) |> (fn unquote(assign) -> unquote(continue) end).()
 
       {:<-, _, [assign, value]}, continue ->

@@ -1,4 +1,4 @@
-defmodule Elixirdo.MonadTrans do
+defmodule Elixirdo.Typeclass.Monad.MonadTrans do
 
   alias Elixirdo.Base.Undetermined
   alias Elixirdo.Base.Generated

@@ -4,6 +4,13 @@ defmodule Elixirdo.Typeclass.Monad.MonadState do
   use Elixirdo.Notation.Do
   alias Elixirdo.Typeclass.Monad
 
+  defmacro __using__(_) do
+    quote do
+      alias Elixirdo.Typeclass.Monad.MonadState
+      import MonadState, only: [monad_state: 0]
+    end
+  end
+
   defclass monad_state(m, m: monad) do
     def get() :: m(s) do
       state(fn s -> {s, s} end, m)

@@ -1,7 +1,7 @@
 defmodule Elixirdo.Notation.Do do
   defmacro __using__(_) do
     quote do
-      import Elixirdo.Notation.Do, only: [monad: 2]
+      import Elixirdo.Notation.Do, only: [monad: 1, monad: 2]
     end
   end
 
@@ -9,7 +9,15 @@ defmodule Elixirdo.Notation.Do do
   def normalize(single) when is_list(single), do: [single]
   def normalize(plain), do: List.wrap(plain)
 
+  defmacro monad(do: body) do
+    do_monad(:monad, do: body)
+  end
+
   defmacro monad(typeclass, do: body) do
+    do_monad(typeclass, do: body)
+  end
+
+  def do_monad(typeclass, do: body) do
     [h | t] = body |> normalize |> Enum.reverse
 
     Enum.reduce(t, h, fn
@@ -36,4 +44,5 @@ defmodule Elixirdo.Notation.Do do
         end
     end)
   end
+
 end

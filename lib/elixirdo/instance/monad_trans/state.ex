@@ -73,4 +73,12 @@ defmodule Elixirdo.Instance.MonadTrans.State do
       end)
     end
   end
+
+  def eval(state_t_a, state) do
+    fn {a, _} -> a end |> Monad.lift_m(run(state_t_a, state))
+  end
+
+  def exec(state_t_a, state) do
+    fn {_, s} -> s end |> Monad.lift_m(run(state_t_a, state))
+  end
 end

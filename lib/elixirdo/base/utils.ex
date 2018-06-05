@@ -81,7 +81,6 @@ defmodule Elixirdo.Base.Utils do
 
   def parse_function_def({name, _, params}, with_block) do
     new_params = merge_argumentlists(params)
-
     results =
       if with_block do
         parse_params_with_type(new_params)
@@ -106,6 +105,14 @@ defmodule Elixirdo.Base.Utils do
 
   def parse_type_param([{:->, _, [fn_params, fn_returns]}]) do
     {:->, parse_type_params(fn_params), parse_type_param(fn_returns)}
+  end
+
+  def parse_type_param({a, b}) do
+    {:{}, [parse_type_param(a), parse_type_param(b)]}
+  end
+
+  def parse_type_param({:{}, _, tuple_params}) do
+    {:{}, parse_type_params(tuple_params)}
   end
 
   def parse_type_param({name, _, _}) do

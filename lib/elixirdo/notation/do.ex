@@ -27,7 +27,6 @@ defmodule Elixirdo.Notation.Do do
         end
 
       value, continue ->
-        value |> IO.inspect(label: "other value")
         quote do
           Elixirdo.Typeclass.Monad.bind(
             unquote(value),

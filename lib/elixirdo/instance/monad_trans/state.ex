@@ -2,13 +2,15 @@ defmodule Elixirdo.Instance.MonadTrans.State do
   use Elixirdo.Base
   use Elixirdo.Typeclass.Monad
   use Elixirdo.Typeclass.Monad.MonadState
+  use Elixirdo.Typeclass.Monad.MonadTrans
+
   alias Elixirdo.Instance.MonadTrans.State
+
+  use Elixirdo.Expand
 
   defstruct [:data]
 
-  deftype(state_t(s, m, a) :: %State{data: inner_state_t(s, m, a)})
-
-  deftype(inner_state_t(s, m, a) :: (s -> Monad.m(m, {a, s})), export: false)
+  deftype state_t(s, m, a) :: %State{data: (s -> m({a, s}))}
 
   def state_t(data) do
     %State{data: data}
@@ -26,7 +28,7 @@ defmodule Elixirdo.Instance.MonadTrans.State do
     state_t(fn state -> f.(run(state_t_a, state)) end)
   end
 
-  definstance functor(state_t) do
+  definstance functor(state_t(m), m: functor) do
     def fmap(f, state_t_a) do
       map(
         fn functor_a ->
@@ -37,7 +39,7 @@ defmodule Elixirdo.Instance.MonadTrans.State do
     end
   end
 
-  definstance applicative(state_t) do
+  definstance applicative(state_t(m), m: monad) do
     def pure(a) do
       state(fn s -> {a, s} end)
     end
@@ -54,7 +56,7 @@ defmodule Elixirdo.Instance.MonadTrans.State do
     end
   end
 
-  definstance monad state_t do
+  definstance monad state_t(m), m: monad  do
     def bind(state_t_a, afb) do
       state_t(
         fn s ->
@@ -62,6 +64,15 @@ defmodule Elixirdo.Instance.MonadTrans.State do
             {a, ns} <- run(state_t_a, s)
             run(afb.(a), ns)
           end
+        end)
+    end
+  end
+
+  definstance monad_trans state_t(m), m: monad do
+    def lift(monad_a) do
+      state_t(
+        fn s ->
+          Monad.lift_m(fn a -> {a, s} end, monad_a)
         end)
     end
   end

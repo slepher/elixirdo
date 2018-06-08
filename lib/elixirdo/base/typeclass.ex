@@ -1,11 +1,13 @@
 defmodule Elixirdo.Base.Typeclass do
   alias Elixirdo.Base.Utils
 
+  @type class(_class, _arguments) :: any()
+
   defmacro __using__(_) do
     quote do
-      import Elixirdo.Base.Typeclass,
-        only: [defclass: 2, __defclass_def: 1, __defclass_def: 2, __defclass_def: 3]
-        Module.register_attribute(__MODULE__, :elixirdo_typeclass, accumulate: false, persist: true)
+      alias Elixirdo.Base.TYpeclass
+      import Elixirdo.Base.Typeclass, only: [defclass: 2, __defclass_def: 1, __defclass_def: 2, __defclass_def: 3]
+      Module.register_attribute(__MODULE__, :elixirdo_typeclass, accumulate: false, persist: true)
     end
   end
 
@@ -57,7 +59,7 @@ defmodule Elixirdo.Base.Typeclass do
     do_defclass_def(params, opts, block, __CALLER__.module)
   end
 
-  def do_defclass_def(params, _opts, block, module) do
+  def do_defclass_def(params, opts, block, module) do
     def_spec =
       if block do
         Utils.parse_def(params, true)
@@ -65,14 +67,14 @@ defmodule Elixirdo.Base.Typeclass do
         Utils.parse_def(params, false)
       end
 
-    run_def_spec(def_spec, block, module)
+    run_def_spec(def_spec, opts, block, module)
   end
 
-  def run_def_spec(def_spec, block, module) do
+  def run_def_spec(def_spec, typeclasses, block, module) do
     class_name = Module.get_attribute(module, :class_name)
     class_param = Module.get_attribute(module, :class_param)
 
-    [name, param_types, _return_type] =
+    [name, param_types, return_type] =
       Keyword.values(Keyword.take(def_spec, [:name, :type_params, :return_type]))
 
     arity = length(param_types)

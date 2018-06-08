@@ -29,11 +29,17 @@ defmodule Elixirdo.Base.Type do
     do_deftype(module, spec, opts)
   end
 
-  def do_deftype(_module, {:::, _, [{name, _, args}, _type_defs]} = spec, opts) do
+  def do_deftype(module, {:::, ctx1, [{name, ctx2, args}, type_defs]}, opts) do
+    {type_defs, typeclasses} = extract_typeclass(module, args, type_defs)
+    spec = {:::, ctx1, [{name, ctx2, args}, type_defs]}
     as = Keyword.get(opts, :as)
     exported = Keyword.get(opts, :export, true)
     arity = length(args)
-
+    typeclass_arguments = args |>
+      Enum.filter(
+        fn {type_name, _, _} ->
+          Enum.member?(typeclasses, type_name)
+        end)
     elixirdo_type =
       if exported do
         [
@@ -44,11 +50,55 @@ defmodule Elixirdo.Base.Type do
       else
         []
       end
+    new_function =
+    case typeclass_arguments do
+      [] ->
+        []
+      typeclass_arguments ->
+        [
+          quote do
+            def new(unquote_splicing(typeclass_arguments)) do
+              {unquote(name), unquote_splicing(typeclass_arguments)}
+            end
+          end
+        ]
+    end
 
     quote do
       @type unquote(spec)
       unquote_splicing(elixirdo_type)
+      unquote_splicing(new_function)
     end
+  end
+
+  def extract_typeclass(module, args, type_defs) do
+    arg_names = args |> Enum.map(
+      fn {var, _ctx, _} ->
+        var
+      end
+    )
+    Macro.traverse(
+      type_defs,
+      [],
+      fn {type, _ctx, arguments} = ast, acc when is_list(arguments) ->
+        case Enum.member?(arg_names, type) do
+          true ->
+            type_var = Macro.var(type, module)
+            ast =
+              quote do
+                Elixirdo.Base.Typeclass.class(unquote(type_var), unquote(arguments))
+              end
+            {ast, [type|acc]}
+          false ->
+            {ast, acc}
+        end
+        ast, acc ->
+          {ast, acc}
+      end,
+      fn ast, acc ->
+        {ast, acc}
+      end
+    )
   end
 
   def extract_elixirdo_types(paths) do

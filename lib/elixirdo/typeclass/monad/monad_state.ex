@@ -22,9 +22,9 @@ defmodule Elixirdo.Typeclass.Monad.MonadState do
 
     def state(f: (s -> {a, s})) :: m(a) do
       monad m do
-        state <- get(m)
-        {a, nstate} = f.(state)
-        put(nstate, m)
+        s <- get(m)
+        {a, ns} = f.(s)
+        put(ns, m)
         Monad.return(a, m)
       end
     end

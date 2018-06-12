@@ -14,6 +14,7 @@ defmodule Elixirdo.Base.Instance do
 
     [class: class_name, class_param: type_name, class_arguments: type_arguments, extends: extends] =
       Keyword.take(class_attr, [:class, :class_param, :class_arguments, :extends])
+
     type_arguments = type_arguments || []
 
     extends = extends |> Enum.map(fn {k, v} -> {k, Utils.parse_type_param(v)} end)
@@ -54,6 +55,7 @@ defmodule Elixirdo.Base.Instance do
          inject_functions(
            typeclass_module,
            module,
+           type_name,
            type_pattern,
            type_argument,
            typeclass_functions,
@@ -66,31 +68,29 @@ defmodule Elixirdo.Base.Instance do
   def inject_functions(
         class_module,
         module,
+        type_name,
         type_pattern,
         type_argument,
         class_functions,
         functions
       ) do
-
-
     :lists.foldl(
       fn {name, arity}, acc ->
         impl_arities = Keyword.get_values(functions, name)
-        case check_impls(arity, impl_arities) do
-          {true, true} ->
+        acc = [shortdef(module, name, arity, type_argument) | acc]
+
+        acc =
+          if type_name == type_argument do
             acc
-
-          {true, false} ->
-            [longdef(module, name, arity, type_argument) | acc]
-
-          {false, true} ->
-            [shortdef(module, name, arity, type_argument) | acc]
-
-          {false, false} ->
-            [
-              shortdef(module, name, arity, type_argument),
-              default_def(class_module, module, name, arity, type_pattern) | acc
-            ]
+          else
+            [longdef(module, name, arity, type_name, type_argument) | acc]
+          end
+        if check_impls(arity, impl_arities) do
+          acc
+        else
+          [
+            default_def(class_module, module, name, arity, type_pattern) | acc
+          ]
         end
       end,
       [],
@@ -99,7 +99,7 @@ defmodule Elixirdo.Base.Instance do
   end
 
   def check_impls(arity, arities) do
-    {:lists.member(arity, arities), :lists.member(arity + 1, arities)}
+    :lists.member(arity + 1, arities)
   end
 
   def shortdef(module, name, arity, type_name) do
@@ -112,12 +112,12 @@ defmodule Elixirdo.Base.Instance do
     end
   end
 
-  def longdef(module, name, arity, type_name) do
+  def longdef(module, name, arity, type_name, type_argument) do
     params = :lists.map(Utils.var_fn(module, "var"), :lists.seq(1, arity))
 
     quote do
       Kernel.def unquote(name)(unquote_splicing(params), unquote(type_name)) do
-        unquote(name)(unquote_splicing(params))
+        unquote(name)(unquote_splicing(params), unquote(type_argument))
       end
     end
   end
@@ -188,25 +188,27 @@ defmodule Elixirdo.Base.Instance do
   end
 
   defp inject_typed_arguments(type_arguments, type_extends) do
-    type_arguments |>
-      Enum.map(
-        fn {argument_name, _, _} = arg ->
-          case Keyword.fetch(type_extends, argument_name) do
-            {:ok, argument_value} ->
-              argument_value
-            :error ->
-              arg
-            end
-          arg ->
+    type_arguments
+    |> Enum.map(fn
+      {argument_name, _, _} = arg ->
+        case Keyword.fetch(type_extends, argument_name) do
+          {:ok, argument_value} ->
+            argument_value
+
+          :error ->
             arg
-          end
-      )
+        end
+
+      arg ->
+        arg
+    end)
   end
 
   defp build_type_pattern(type_name, type_arguments, elixirdo_type_funs) do
     case Keyword.fetch(elixirdo_type_funs, type_name) do
       {:ok, elixirdo_type_fun} ->
         elixirdo_type_fun.(type_arguments)
+
       :error ->
         nil
     end

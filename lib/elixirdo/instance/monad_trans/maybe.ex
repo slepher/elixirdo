@@ -52,7 +52,7 @@ defmodule Elixirdo.Instance.MonadTrans.Maybe do
   end
 
   def map(f, mta) do
-    maybe_t(f.(run_maybe_t(mta)))
+    new_maybe_t(f.(run_maybe_t(mta)))
   end
 
   def new_maybe_t(data) do

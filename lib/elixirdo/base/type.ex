@@ -32,7 +32,7 @@ defmodule Elixirdo.Base.Type do
   def do_deftype(module, {:::, ctx1, [{name, ctx2, args}, type_defs]}, opts) do
     {type_defs, typeclasses} = extract_typeclass(module, args, type_defs)
     spec = {:::, ctx1, [{name, ctx2, args}, type_defs]}
-    as = Keyword.get(opts, :as)
+    as = Keyword.get(opts, :as, name)
     exported = Keyword.get(opts, :export, true)
     arity = length(args)
     typeclass_arguments = args |>
@@ -40,25 +40,46 @@ defmodule Elixirdo.Base.Type do
         fn {type_name, _, _} ->
           Enum.member?(typeclasses, type_name)
         end)
-    elixirdo_type =
-      if exported do
-        [
-          quote do
-            @elixirdo_type {unquote(name), unquote(arity), unquote(as)}
+    args_offsets =
+      case args do
+        [] ->
+          []
+        _ ->
+          Enum.to_list(1..length(args))
+        end
+    typeclass_arguments_offsets = args_offsets |>
+       Enum.filter(
+          fn n ->
+            {type_name, _, _} = :lists.nth(n, args)
+            Enum.member?(typeclasses, type_name)
           end
-        ]
-      else
-        []
+        )
+      if exported do
+        elixirdo_types = Module.get_attribute(module, :elixirdo_type) || []
+        Module.put_attribute(module, :elixirdo_type, [{as, {name, arity}}|elixirdo_types])
       end
     new_function =
     case typeclass_arguments do
       [] ->
-        []
-      typeclass_arguments ->
+        elixirdo_type_funs = Module.get_attribute(module, :elixirdo_type_fun) || []
+        elixirdo_type_fun = fn _type_args -> as end
+        Module.put_attribute(module, :elixirdo_type_fun, [{as, elixirdo_type_fun}|elixirdo_type_funs])
         [
           quote do
-            def new(unquote_splicing(typeclass_arguments)) do
-              {unquote(name), unquote_splicing(typeclass_arguments)}
+            def unquote(as)() do
+              unquote(as)
+            end
+          end
+        ]
+      typeclass_arguments ->
+        elixirdo_type_funs = Module.get_attribute(module, :elixirdo_type_fun) || []
+        elixirdo_type_fun =fn type_args -> {:{}, [], [as|Enum.map(typeclass_arguments_offsets, fn n -> :lists.nth(n, type_args) end)]} end
+        Module.put_attribute(module, :elixirdo_type_fun, [{as, elixirdo_type_fun}|elixirdo_type_funs])
+
+        [
+          quote do
+            def unquote(as)(unquote_splicing(typeclass_arguments)) do
+              {unquote(as), unquote_splicing(typeclass_arguments)}
             end
           end
         ]
@@ -66,7 +87,6 @@ defmodule Elixirdo.Base.Type do
 
     quote do
       @type unquote(spec)
-      unquote_splicing(elixirdo_type)
       unquote_splicing(new_function)
     end
   end
@@ -112,7 +132,7 @@ defmodule Elixirdo.Base.Type do
 
           types ->
             types
-            |> Enum.map(fn {type, arity, inner_type} -> {module, type, arity, inner_type} end)
+            |> Enum.map(fn {as, {type, arity}} -> {module, type, arity, as} end)
         end
       end)
 

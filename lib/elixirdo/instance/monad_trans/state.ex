@@ -12,7 +12,7 @@ defmodule Elixirdo.Instance.MonadTrans.State do
 
   deftype state_t(s, m, a) :: %State{data: (s -> m({a, s}))}
 
-  def state_t(data) do
+  def new_state_t(data) do
     %State{data: data}
   end
 
@@ -25,42 +25,42 @@ defmodule Elixirdo.Instance.MonadTrans.State do
   end
 
   def map(f, state_t_a) do
-    state_t(fn state -> f.(run(state_t_a, state)) end)
+    new_state_t(fn state -> f.(run(state_t_a, state)) end)
   end
 
-  definstance functor(state_t(m), m: functor) do
+  definstance functor state_t(s, m), m: functor do
     def fmap(f, state_t_a) do
       map(
         fn functor_a ->
-          Functor.fmap(fn {a, state} -> {f.(a), state} end, functor_a)
+          Functor.fmap(fn {a, state} -> {f.(a), state} end, functor_a, m)
         end,
         state_t_a
       )
     end
   end
 
-  definstance applicative(state_t(m), m: monad) do
+  definstance applicative state_t(s, m), m: monad do
     def pure(a) do
-      state(fn s -> {a, s} end)
+      do_state(fn s -> {a, s} end, m)
     end
 
     def ap(state_t_f, state_t_a) do
-      state_t(
+      new_state_t(
         fn s ->
-          monad do
+          monad m do
             {f, ns} <- run(state_t_f, s)
             {a, nns} <- run(state_t_a, ns)
-            Monad.return({f.(a), nns})
+            Monad.return({f.(a), nns}, m)
           end
         end)
     end
   end
 
-  definstance monad state_t(m), m: monad  do
+  definstance monad state_t(s, m), m: monad  do
     def bind(state_t_a, afb) do
-      state_t(
+      new_state_t(
         fn s ->
-          monad do
+          monad m do
             {a, ns} <- run(state_t_a, s)
             run(afb.(a), ns)
           end
@@ -68,28 +68,32 @@ defmodule Elixirdo.Instance.MonadTrans.State do
     end
   end
 
-  definstance monad_trans state_t(m), m: monad do
+  definstance monad_trans state_t(s, m), m: monad do
     def lift(monad_a) do
-      state_t(
+      new_state_t(
         fn s ->
-          Monad.lift_m(fn a -> {a, s} end, monad_a)
+          Monad.lift_m(fn a -> {a, s} end, monad_a, m)
         end)
     end
   end
 
-  definstance monad_state(state_t) do
+  definstance monad_state state_t(s, m), m: monad do
     def state(f) do
-      state_t(fn state ->
-        Monad.return(f.(state))
-      end)
+      do_state(f, m)
     end
   end
 
-  def eval(state_t_a, state) do
-    fn {a, _} -> a end |> Monad.lift_m(run(state_t_a, state))
+  def eval(state_t_a, state, m \\ :monad) do
+    fn {a, _} -> a end |> Monad.lift_m(run(state_t_a, state), m)
   end
 
-  def exec(state_t_a, state) do
-    fn {_, s} -> s end |> Monad.lift_m(run(state_t_a, state))
+  def exec(state_t_a, state, m \\ :monad) do
+    fn {_, s} -> s end |> Monad.lift_m(run(state_t_a, state), m)
+  end
+
+  defp do_state(f, m) do
+    new_state_t(fn state ->
+      Monad.return(f.(state), m)
+    end)
   end
 end

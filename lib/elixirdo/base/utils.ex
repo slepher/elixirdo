@@ -52,13 +52,13 @@ defmodule Elixirdo.Base.Utils do
     fn pos -> Macro.var(String.to_atom(name <> Integer.to_string(pos)), module) end
   end
 
-  def parse_class({class, _, [{class_param, _, _}]}) do
-    [class: class, class_param: class_param, extends: []]
+  def parse_class({class, _, [{class_param, _, class_arguments}]}) do
+    [class: class, class_param: class_param, class_arguments: class_arguments, extends: []]
   end
 
-  def parse_class({class, _, [{class_param, _, _} | extends]}) do
+  def parse_class({class, _, [{class_param, _, class_arguments} | extends]}) do
     extends = parse_extends(class_param, merge_argumentlists(extends))
-    [class: class, class_param: class_param, extends: extends]
+    [class: class, class_param: class_param, class_arguments: class_arguments, extends: extends]
   end
 
   def parse_extends(class_param, [{extend_param, {extend_class, _, _}} | t]) do
@@ -116,6 +116,10 @@ defmodule Elixirdo.Base.Utils do
   end
 
   def parse_type_param({name, _, _}) do
+    name
+  end
+
+  def parse_type_param(name) when is_atom(name) do
     name
   end
 

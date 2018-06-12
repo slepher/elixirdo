@@ -11,15 +11,24 @@ defmodule Elixirdo.Base.Instance do
 
   defmacro definstance(name, do: block) do
     class_attr = Elixirdo.Base.Utils.parse_class(name)
-    [class: class_name, class_param: class_param, extends: _extends] = class_attr
+
+    [class: class_name, class_param: type_name, class_arguments: type_arguments, extends: extends] =
+      Keyword.take(class_attr, [:class, :class_param, :class_arguments, :extends])
+    type_arguments = type_arguments || []
+
+    extends = extends |> Enum.map(fn {k, v} -> {k, Utils.parse_type_param(v)} end)
+
     module = __CALLER__.module
     Module.put_attribute(module, :class_name, class_name)
-    Module.put_attribute(module, :class_param, class_param)
+    Module.put_attribute(module, :type_name, type_name)
+    Module.put_attribute(module, :type_arguments, type_arguments)
+    Module.put_attribute(module, :type_extends, extends)
     Module.put_attribute(module, :functions, [])
     block = Elixirdo.Base.Utils.rename_macro(:def, :__definstance_def, block)
+
     quote do
       unquote(class_name)()
-      @elixirdo_instance [{unquote(class_name), unquote(class_param)}]
+      @elixirdo_instance [{unquote(class_name), unquote(type_name)}]
       unquote(block)
       Elixirdo.Base.Instance.after_definstance()
     end
@@ -28,59 +37,94 @@ defmodule Elixirdo.Base.Instance do
   defmacro after_definstance() do
     module = __CALLER__.module
     functions = Utils.get_delete_attribute(module, :functions)
-    class_param = Utils.get_delete_attribute(module, :class_param)
+    type_name = Utils.get_delete_attribute(module, :type_name)
+    type_arguments = Utils.get_delete_attribute(module, :type_arguments)
+    type_extends = Utils.get_delete_attribute(module, :type_extends)
     typeclass_module = Utils.get_delete_attribute(module, :typeclass_module)
     typeclass_functions = Utils.get_delete_attribute(module, :typeclass_functions)
+
+    elixirdo_type_funs = Module.get_attribute(module, :elixirdo_type_fun) || []
+
+    type_pattern = build_type_pattern(type_name, type_arguments, elixirdo_type_funs)
+    type_arguments = inject_typed_arguments(type_arguments, type_extends)
+    type_argument = build_type_pattern(type_name, type_arguments, elixirdo_type_funs)
+
     quote do
-      unquote_splicing(
-        inject_functions(typeclass_module, module, class_param, typeclass_functions, functions)
-      )
+      (unquote_splicing(
+         inject_functions(
+           typeclass_module,
+           module,
+           type_pattern,
+           type_argument,
+           typeclass_functions,
+           functions
+         )
+       ))
     end
   end
 
-  def inject_functions(class_module, module, class_param, class_functions, functions) do
-    :lists.foldl(fn {name, arity}, acc ->
-      impl_arities = Keyword.get_values(functions, name)
-      case check_impls(arity, impl_arities) do
-        {true, true} ->
-          acc
-        {true, false} ->
-          [longdef(module, name, arity, class_param) | acc]
-        {false, true} ->
-          [shortdef(module, name, arity, class_param) | acc]
-        {false, false} ->
-          [shortdef(module, name, arity, class_param), default_def(class_module, module, name, arity)|acc]
-      end
-    end, [], class_functions)
+  def inject_functions(
+        class_module,
+        module,
+        type_pattern,
+        type_argument,
+        class_functions,
+        functions
+      ) do
+
+
+    :lists.foldl(
+      fn {name, arity}, acc ->
+        impl_arities = Keyword.get_values(functions, name)
+        case check_impls(arity, impl_arities) do
+          {true, true} ->
+            acc
+
+          {true, false} ->
+            [longdef(module, name, arity, type_argument) | acc]
+
+          {false, true} ->
+            [shortdef(module, name, arity, type_argument) | acc]
+
+          {false, false} ->
+            [
+              shortdef(module, name, arity, type_argument),
+              default_def(class_module, module, name, arity, type_pattern) | acc
+            ]
+        end
+      end,
+      [],
+      class_functions
+    )
   end
 
   def check_impls(arity, arities) do
     {:lists.member(arity, arities), :lists.member(arity + 1, arities)}
   end
 
-  def shortdef(module, name, arity, class_param) do
+  def shortdef(module, name, arity, type_name) do
     params = :lists.map(Utils.var_fn(module, "var"), :lists.seq(1, arity))
 
     quote do
       Kernel.def unquote(name)(unquote_splicing(params)) do
-        unquote(name)(unquote_splicing(params), unquote(class_param))
+        unquote(name)(unquote_splicing(params), unquote(type_name))
       end
     end
   end
 
-  def longdef(module, name, arity, class_param) do
+  def longdef(module, name, arity, type_name) do
     params = :lists.map(Utils.var_fn(module, "var"), :lists.seq(1, arity))
 
     quote do
-      Kernel.def unquote(name)(unquote_splicing(params), unquote(class_param)) do
+      Kernel.def unquote(name)(unquote_splicing(params), unquote(type_name)) do
         unquote(name)(unquote_splicing(params))
       end
     end
   end
 
-  def default_def(class_module, module, name, arity) do
+  def default_def(class_module, module, name, arity, type_pattern) do
     default_name = String.to_atom("__default__" <> Atom.to_string(name))
-    params = :lists.map(Utils.var_fn(module, "var"), :lists.seq(1, arity + 1))
+    params = :lists.map(Utils.var_fn(module, "var"), :lists.seq(1, arity)) ++ [type_pattern]
 
     quote do
       Kernel.def unquote(name)(unquote_splicing(params)) do
@@ -93,44 +137,78 @@ defmodule Elixirdo.Base.Instance do
     arity = length(params)
     module = __CALLER__.module
 
+    type_name = Module.get_attribute(module, :type_name)
+    type_arguments = Module.get_attribute(module, :type_arguments)
+    elixirdo_type_funs = Module.get_attribute(module, :elixirdo_type_fun) || []
+
+    type_pattern = build_type_pattern(type_name, type_arguments, elixirdo_type_funs)
+
     Utils.update_attribute(module, :functions, fn functions ->
-      :ordsets.add_element({name, arity}, functions)
+      :ordsets.add_element({name, arity + 1}, functions)
     end)
 
     quote do
-      Kernel.def unquote(name)(unquote_splicing(params)) do
+      Kernel.def unquote(name)(unquote_splicing(params ++ [type_pattern])) do
         unquote(block)
       end
     end
   end
 
   def extract_elixirdo_instances(paths) do
-     instances =
+    instances =
       Utils.extract_matching_by_attribute(paths, 'Elixir.', fn module, attributes ->
         case attributes[:elixirdo_instance] do
           nil ->
             nil
+
           instance_classes ->
             {module, instance_classes}
         end
       end)
-    instance_clauses = instances
+
+    instance_clauses =
+      instances
       |> Enum.map(fn {module, instance_classes} -> instance_clause(module, instance_classes) end)
       |> :lists.flatten()
+
     quote do
-      unquote_splicing(instance_clauses)
+      (unquote_splicing(instance_clauses))
     end
   end
 
   def instance_clause(module, instances) do
-    instances |> Enum.map(
-      fn {class, instance} ->
-        quote do
-          def module(unquote(instance), unquote(class)) do
-            unquote(module)
-          end
+    instances
+    |> Enum.map(fn {class, instance} ->
+      quote do
+        def module(unquote(instance), unquote(class)) do
+          unquote(module)
         end
       end
-    )
+    end)
+  end
+
+  defp inject_typed_arguments(type_arguments, type_extends) do
+    type_arguments |>
+      Enum.map(
+        fn {argument_name, _, _} = arg ->
+          case Keyword.fetch(type_extends, argument_name) do
+            {:ok, argument_value} ->
+              argument_value
+            :error ->
+              arg
+            end
+          arg ->
+            arg
+          end
+      )
+  end
+
+  defp build_type_pattern(type_name, type_arguments, elixirdo_type_funs) do
+    case Keyword.fetch(elixirdo_type_funs, type_name) do
+      {:ok, elixirdo_type_fun} ->
+        elixirdo_type_fun.(type_arguments)
+      :error ->
+        nil
+    end
   end
 end

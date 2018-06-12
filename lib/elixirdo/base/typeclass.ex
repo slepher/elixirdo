@@ -13,7 +13,7 @@ defmodule Elixirdo.Base.Typeclass do
 
   defmacro defclass(name, do: block) do
     class_attr = Elixirdo.Base.Utils.parse_class(name)
-    [class: class_name, class_param: class_param, extends: _extends] = class_attr
+    [class: class_name, class_param: class_param] = Keyword.take(class_attr, [:class, :class_param])
     module = __CALLER__.module
     Module.put_attribute(module, :class_name, class_name)
     Module.put_attribute(module, :class_param, class_param)
@@ -70,11 +70,11 @@ defmodule Elixirdo.Base.Typeclass do
     run_def_spec(def_spec, opts, block, module)
   end
 
-  def run_def_spec(def_spec, typeclasses, block, module) do
+  def run_def_spec(def_spec, _typeclasses, block, module) do
     class_name = Module.get_attribute(module, :class_name)
     class_param = Module.get_attribute(module, :class_param)
 
-    [name, param_types, return_type] =
+    [name, param_types, _return_type] =
       Keyword.values(Keyword.take(def_spec, [:name, :type_params, :return_type]))
 
     arity = length(param_types)

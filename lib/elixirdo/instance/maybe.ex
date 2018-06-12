@@ -7,7 +7,6 @@ defmodule Elixirdo.Instance.Maybe do
 
   deftype maybe(a) :: {:just, a} | :nothing
 
-
   definstance functor(maybe) do
     def fmap(f, {:just, x}) do
       {:just, f.(x)}

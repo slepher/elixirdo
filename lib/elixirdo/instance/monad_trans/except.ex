@@ -9,10 +9,9 @@ defmodule Elixirdo.Instance.MonadTrans.Except do
   use Elixirdo.Base.Instance
   use Elixirdo.Expand
 
-  deftype(error_t(e, m, a) :: %Except{data: inner_error_t(e, m, a)})
-  deftype(inner_error_t(e, m, a) :: Monad.m(m, Either.either(e, a)), export: false)
+  deftype(except_t(e, m, a) :: %Except{data: m(Either.either(e, a))})
 
-  def error_t(m) do
+  def new_error_t(m) do
     %Except{data: m}
   end
 
@@ -20,37 +19,41 @@ defmodule Elixirdo.Instance.MonadTrans.Except do
     inner
   end
 
-  definstance functor(error_t) do
+  definstance functor(except_t(e, m), m: functor) do
     def fmap(f, error_t_a) do
       map(
         fn fa ->
-          Functor.fmap(fn a -> Either.fmap(f, a) end, fa)
+          Functor.fmap(fn a -> Either.fmap(f, a) end, fa, m)
         end,
         error_t_a
       )
     end
   end
 
-  definstance applicative(error_t) do
+  definstance applicative(except_t(e, m), m: monad) do
     def pure(a) do
-      error_t(Applicative.pure(Either.pure(a)))
+      new_error_t(Monad.return(Either.pure(a), m))
     end
 
     def ap(error_t_f, error_t_a) do
-      error_t(
-        monad :monad do
+      new_error_t(
+        monad m do
           either_f <- run_error_t(error_t_f)
+
           case either_f do
             {:left, _} ->
-              Monad.return(either_f)
+              Monad.return(either_f, m)
+
             {:right, f} ->
-              monad :monad do
+              monad m do
                 either_a <- run_error_t(error_t_a)
+
                 case either_a do
                   {:left, _} ->
-                    Monad.return(either_a)
+                    Monad.return(either_a, m)
+
                   {:right, a} ->
-                    Monad.return({:right, f.(a)})
+                    Monad.return({:right, f.(a)}, m)
                 end
               end
           end
@@ -59,14 +62,16 @@ defmodule Elixirdo.Instance.MonadTrans.Except do
     end
   end
 
-  definstance monad(error_t) do
+  definstance monad(except_t(e, m), m: monad) do
     def bind(error_t_a, afb) do
-      error_t(
-        monad :monad do
+      new_error_t(
+        monad m do
           either_a <- run_error_t(error_t_a)
+
           case either_a do
             {:left, _} ->
-              Monad.return(either_a)
+              Monad.return(either_a, m)
+
             {:right, a} ->
               run_error_t(afb.(a))
           end
@@ -76,6 +81,6 @@ defmodule Elixirdo.Instance.MonadTrans.Except do
   end
 
   def map(f, error_t_a) do
-    error_t(f.(run_error_t(error_t_a)))
+    new_error_t(f.(run_error_t(error_t_a)))
   end
 end

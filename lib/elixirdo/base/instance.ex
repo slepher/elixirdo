@@ -33,8 +33,8 @@ defmodule Elixirdo.Base.Instance do
     Module.put_attribute(module, :functions, [])
     block = Elixirdo.Base.Utils.rename_macro(:def, :__definstance_def, block)
 
-    import_attrs(module, class_name, typeclass_module, expr)
-    import_attrs(module, type_name, nil, expr)
+    import_attrs(module, class_name, typeclass_module, __CALLER__.file, expr)
+    import_attrs(module, type_name, nil, __CALLER__.file, expr)
 
     quote do
       @elixirdo_instance [{unquote(class_name), unquote(type_name)}]
@@ -43,7 +43,7 @@ defmodule Elixirdo.Base.Instance do
     end
   end
 
-  def import_attrs(module, name, attr_module, expr) do
+  def import_attrs(module, name, attr_module, file, expr) do
     if attr_module do
       Utils.import_attribute(module, attr_module, name)
     end
@@ -53,15 +53,8 @@ defmodule Elixirdo.Base.Instance do
     if(!attrs) do
       {_, ctx, _} = expr
       line = Keyword.get(ctx, :line)
-      title = "definstance " <> (expr |> Macro.to_string())
-
-      :erlang.error(
-        RuntimeError.exception(
-          Atom.to_string(name) <>
-            " is not imported in " <>
-            Atom.to_string(module) <> ":" <> Integer.to_string(line) <> " at " <> title
-        )
-      )
+      msg = Atom.to_string(name) <> " is not imported"
+      :elixir_errors.compile_error([line: line], file, msg)
     end
 
     attrs

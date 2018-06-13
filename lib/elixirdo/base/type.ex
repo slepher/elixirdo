@@ -318,13 +318,11 @@ defmodule Elixirdo.Base.Type do
 
       _ ->
         Enum.map(errors, fn
-          {{module, type, arity}, at_module, line} ->
-            Mix.shell().error(
-              "type not defined #{module}:#{type}/#{arity} at #{at_module}:#{line}"
-            )
+          {{module, type, arity}, _at_module, file, line} ->
+            :elixir_errors.warn(line, file, "undefined type #{module}.#{type}/#{arity}")
 
-          {module, at_module, line} ->
-            Mix.shell().error("module could not loaded #{module} at #{at_module}:#{line}")
+          {module, _at_module, file, line} ->
+            :elixir_errors.warn(line, file, "could not load module #{module}")
         end)
 
         Mix.raise("compile failed")

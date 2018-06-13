@@ -45,7 +45,7 @@ defmodule Mix.Tasks.Compile.Elixirdo do
       end
     end
 
-    type_function |> Macro.to_string |> IO.puts
+    #type_function |> Macro.to_string |> IO.puts
     #typeclass_function |> Macro.to_string |> IO.puts
     #instance_function |> Macro.to_string |> IO.puts
 

@@ -4,9 +4,7 @@ defmodule Elixirdo.Instance.Function do
   use Elixirdo.Typeclass.Monad
   use Elixirdo.Expand
 
-  expand do
-    deftype function(r, a) :: ((r -> a))
-  end
+  deftype function(r, a) :: ((r -> a))
 
   definstance functor function(r) do
     def fmap(f, r) do

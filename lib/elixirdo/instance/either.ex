@@ -4,9 +4,7 @@ defmodule Elixirdo.Instance.Either do
 
   use Elixirdo.Typeclass.Monad
 
-  expand do
-    deftype either(e, a) :: {:left, a} | {:right, e}
-  end
+  deftype either(e, a) :: {:left, a} | {:right, e}
 
   def either(fac, fbc) do
     fn eab ->

@@ -4,6 +4,10 @@ defmodule Elixirdo.Base.Generated do
     :undefined
   end
 
+  def type_name(type) do
+    type
+  end
+
   def is_typeclass(_) do
     false
   end

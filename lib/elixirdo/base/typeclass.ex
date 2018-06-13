@@ -143,8 +143,6 @@ defmodule Elixirdo.Base.Typeclass do
     end
   end
 
-
-
   def trans_vars(arities, param_types, param_names, class_name, class_param, module) do
     :lists.filter(
       fn ast -> ast != nil end,

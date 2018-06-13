@@ -5,7 +5,7 @@ defmodule Elixirdo.Base.Type do
 
   defmacro __using__(_) do
     quote do
-      import Elixirdo.Base.Type, only: [deftype: 1, deftype: 2, import_type: 2]
+      import Elixirdo.Base.Type, only: [deftype: 1, deftype: 2, import_type: 1]
       Module.register_attribute(__MODULE__, :elixirdo_type, accumulate: true, persist: true)
     end
   end
@@ -32,80 +32,99 @@ defmodule Elixirdo.Base.Type do
     as = Keyword.get(opts, :as, name)
     exported = Keyword.get(opts, :export, true)
     arity = length(args)
-    typeclass_arguments = args |>
-      Enum.filter(
-        fn {type_name, _, _} ->
-          Enum.member?(typeclasses, type_name)
-        end)
-    args_offsets =
-      case args do
-        [] ->
-          []
-        _ ->
-          Enum.to_list(1..length(args))
-        end
-    typeclass_arguments_offsets = args_offsets |>
-       Enum.filter(
-          fn n ->
-            {type_name, _, _} = :lists.nth(n, args)
-            Enum.member?(typeclasses, type_name)
-          end
-        )
-      if exported do
-        elixirdo_types = Module.get_attribute(module, :elixirdo_type) || []
-        Module.put_attribute(module, :elixirdo_type, [{as, {name, arity}}|elixirdo_types])
+
+    if exported do
+      elixirdo_types = Module.get_attribute(module, :elixirdo_type) || []
+      Module.put_attribute(module, :elixirdo_type, [as| elixirdo_types])
+      elixirdo_type_fun_in_fun = type_fun(as, args, typeclasses, true)
+      elixirdo_type_fun_in_attr = type_fun(as, args, typeclasses, false)
+      type_attributes = [name: as, type_name: name, arity: arity]
+      type_attribute_in_attr = type_attributes ++ [type_fun: elixirdo_type_fun_in_attr]
+      type_attribute_in_fun = type_attributes ++ [type_fun: elixirdo_type_fun_in_fun]
+      exported_attribute = Utils.export_attribute(module, as, type_attribute_in_attr, type_attribute_in_fun)
+      quote do
+        @type unquote(spec)
+        unquote(exported_attribute)
       end
-    case typeclass_arguments do
-      [] ->
-        elixirdo_type_funs = Module.get_attribute(module, :elixirdo_type_fun) || []
-        elixirdo_type_fun = fn _type_args -> as end
-        Module.put_attribute(module, :elixirdo_type_fun, [{as, elixirdo_type_fun}|elixirdo_type_funs])
-      _ ->
-        elixirdo_type_funs = Module.get_attribute(module, :elixirdo_type_fun) || []
-        elixirdo_type_fun =fn type_args -> {:{}, [], [as|Enum.map(typeclass_arguments_offsets, fn n -> :lists.nth(n, type_args) end)]} end
-        Module.put_attribute(module, :elixirdo_type_fun, [{as, elixirdo_type_fun}|elixirdo_type_funs])
-    end
-    Module.put_attribute(module, as, module)
-
-    exported_attribute = Utils.export_attribute(module, as, module)
-
-    quote do
-      @type unquote(spec)
-      unquote(exported_attribute)
+    else
+      quote do: @type unquote(spec)
     end
   end
 
-  defmacro import_type(from_module, type) do
+  defmacro import_type({{:., _, [from_module, type]}, _, _}) do
     module = __CALLER__.module
     from_module = Macro.expand(from_module, __CALLER__)
-    if :erlang.function_exported(module, type, 0) do
-        Module.put_attribute(module, type, from_module)
+    Utils.import_attribute(module, from_module, type)
+    nil
+  end
+
+  def type_fun(type_name, args, typeclasses, quoted) do
+    args_offsets =
+      case args do
+        [] -> []
+        _  -> Enum.to_list(1..length(args))
+      end
+
+    typeclass_arguments_offsets =
+      args_offsets
+      |> Enum.filter(fn n ->
+        type_arg_name = Utils.parse_type_param(:lists.nth(n, args))
+        Enum.member?(typeclasses, type_arg_name)
+      end)
+
+    if quoted do
+      type_fun_in_fun(type_name, typeclass_arguments_offsets)
     else
-      :erlang.error(RuntimeError.exception("type " <> Atom.to_string(type) <> "is not exported from " <> Atom.to_string(from_module)))
+      type_fun_in_attr(type_name, typeclass_arguments_offsets)
+    end
+  end
+
+  def type_fun_in_fun(type_name, typeclass_arguments_offsets) do
+    quote do
+      fn type_args ->
+        type_name = unquote(type_name)
+        args = Enum.map(unquote(typeclass_arguments_offsets), fn n -> :lists.nth(n, type_args) end)
+        case args do
+          [] -> quote do: unquote(type_name)
+          _  -> quote do: {unquote(type_name), unquote_splicing(args)}
+        end
+      end
+    end
+  end
+
+  def type_fun_in_attr(type_name, typeclass_arguments_offsets) do
+    fn type_args ->
+      args = Enum.map(typeclass_arguments_offsets, fn n -> :lists.nth(n, type_args) end)
+      case args do
+        [] -> quote do: unquote(type_name)
+        _  -> quote do: {unquote(type_name), unquote_splicing(args)}
+      end
     end
   end
 
   def extract_typeclass(module, args, type_defs) do
-    arg_names = args |> Enum.map(
-      fn {var, _ctx, _} ->
-        var
-      end
-    )
+    arg_names = args |> Enum.map(fn {var, _ctx, _} -> var end)
+
     Macro.traverse(
       type_defs,
       [],
-      fn {type, _ctx, arguments} = ast, acc when is_list(arguments) ->
-        case Enum.member?(arg_names, type) do
-          true ->
-            type_var = Macro.var(type, module)
-            ast =
-              quote do
-                Elixirdo.Base.Typeclass.class(unquote(type_var), unquote(arguments))
-              end
-            {ast, [type|acc]}
-          false ->
-            {ast, acc}
-        end
+      fn
+        {type, _ctx, arguments} = ast, acc when is_list(arguments) ->
+          case Enum.member?(arg_names, type) do
+            true ->
+              type_var = Macro.var(type, module)
+
+              ast =
+                quote do
+                  Elixirdo.Base.Typeclass.class(unquote(type_var), unquote(arguments))
+                end
+
+              {ast, [type | acc]}
+
+            false ->
+              {ast, acc}
+          end
+
         ast, acc ->
           {ast, acc}
       end,
@@ -126,19 +145,22 @@ defmodule Elixirdo.Base.Type do
 
           types ->
             types
-            |> Enum.map(fn {as, {type, arity}} -> {module, type, arity, as} end)
+            |> Enum.map(fn name -> {module, name} end)
         end
       end)
 
+    IO.inspect mfas
+
     expanded_types =
       :lists.foldl(
-        fn {module, name, arity, as}, acc ->
-          case :type_expansion.expand(module, name, arity, cache) do
+        fn {module, name}, acc ->
+          [type_name: type_name, arity: arity] = Keyword.take(:erlang.apply(module, name, []), [:type_name, :arity])
+          case :type_expansion.expand(module, type_name, arity, cache) do
             :error ->
               acc
 
             {:ok, type} ->
-              acc = [{module, as, type} | acc]
+              acc = [{module, name, type} | acc]
               acc
           end
         end,

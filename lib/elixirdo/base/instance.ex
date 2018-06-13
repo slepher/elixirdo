@@ -9,10 +9,10 @@ defmodule Elixirdo.Base.Instance do
     end
   end
 
-  defmacro definstance(name, do: block) do
-    class_attr = Elixirdo.Base.Utils.parse_class(name, __CALLER__)
-    [class: class_name, class_module: typeclass_module, line: line, class_param: type_name, class_arguments: type_arguments, extends: extends] =
-      Keyword.take(class_attr, [:class, :class_module, :line, :class_param, :class_arguments, :extends])
+  defmacro definstance(expr, do: block) do
+    class_attr = Elixirdo.Base.Utils.parse_class(expr, __CALLER__)
+    [class: class_name, class_module: typeclass_module, class_param: type_name, class_arguments: type_arguments, extends: extends] =
+      Keyword.take(class_attr, [:class, :class_module, :class_param, :class_arguments, :extends])
 
     type_arguments = type_arguments || []
 
@@ -26,22 +26,30 @@ defmodule Elixirdo.Base.Instance do
     Module.put_attribute(module, :functions, [])
     block = Elixirdo.Base.Utils.rename_macro(:def, :__definstance_def, block)
 
-    if (typeclass_module) do
-      Utils.import_attribute(module, typeclass_module, class_name)
-    end
-
-    typeclass_attrs = Module.get_attribute(module, class_name)
-
-    if(!typeclass_attrs) do
-      title = "definstance " <> (name |> Macro.to_string)
-      :erlang.error(RuntimeError.exception("typeclass " <> Atom.to_string(class_name) <> " is not imported in " <> Atom.to_string(module) <> ":" <> Integer.to_string(line) <> " at " <> title))
-    end
+    import_attrs(module, class_name, typeclass_module, expr)
+    import_attrs(module, type_name, nil, expr)
 
     quote do
       @elixirdo_instance [{unquote(class_name), unquote(type_name)}]
       unquote(block)
       Elixirdo.Base.Instance.after_definstance()
     end
+  end
+
+  def import_attrs(module, name, attr_module, expr) do
+    if (attr_module) do
+      Utils.import_attribute(module, attr_module, name)
+    end
+
+    attrs = Module.get_attribute(module, name)
+
+    if(!attrs) do
+      {_, ctx, _} = expr
+      line = Keyword.get(ctx, :line)
+      title = "definstance " <> (expr |> Macro.to_string)
+      :erlang.error(RuntimeError.exception(Atom.to_string(name) <> " is not imported in " <> Atom.to_string(module) <> ":" <> Integer.to_string(line) <> " at " <> title))
+    end
+    attrs
   end
 
   defmacro after_definstance() do
@@ -53,12 +61,12 @@ defmodule Elixirdo.Base.Instance do
     class_name = Utils.get_delete_attribute(module, :class_name)
 
     [module: typeclass_module, functions: typeclass_functions] = Module.get_attribute(module, class_name)
-
-    elixirdo_type_funs = Module.get_attribute(module, :elixirdo_type_fun) || []
-
-    type_pattern = build_type_pattern(type_name, type_arguments, elixirdo_type_funs)
+    type_fun = Keyword.get(Module.get_attribute(module, type_name), :type_fun)
+    type_pattern = type_fun.(type_arguments)
     type_arguments = inject_typed_arguments(type_arguments, type_extends)
-    type_argument = build_type_pattern(type_name, type_arguments, elixirdo_type_funs)
+    type_argument = type_fun.(type_arguments)
+
+    [type: type_name, type_pattern: type_pattern, type_argument: type_argument] |> IO.inspect
 
     result =
       quote do
@@ -154,9 +162,9 @@ defmodule Elixirdo.Base.Instance do
 
     type_name = Module.get_attribute(module, :type_name)
     type_arguments = Module.get_attribute(module, :type_arguments)
-    elixirdo_type_funs = Module.get_attribute(module, :elixirdo_type_fun) || []
+    type_fun = Keyword.get(Module.get_attribute(module, type_name), :type_fun)
 
-    type_pattern = build_type_pattern(type_name, type_arguments, elixirdo_type_funs)
+    type_pattern = type_fun.(type_arguments)
 
     Utils.update_attribute(module, :functions, fn functions ->
       :ordsets.add_element({name, arity + 1}, functions)
@@ -219,13 +227,4 @@ defmodule Elixirdo.Base.Instance do
     end)
   end
 
-  defp build_type_pattern(type_name, type_arguments, elixirdo_type_funs) do
-    case Keyword.fetch(elixirdo_type_funs, type_name) do
-      {:ok, elixirdo_type_fun} ->
-        elixirdo_type_fun.(type_arguments)
-
-      :error ->
-        nil
-    end
-  end
 end

@@ -38,10 +38,14 @@ defmodule Elixirdo.Base.Utils do
   end
 
   def export_attribute(module, name, value) do
+    export_attribute(module, name, value, value)
+  end
+
+  def export_attribute(module, name, value, fun_value) do
     Module.put_attribute(module, name, value)
     quote do
       def unquote(name)() do
-        unquote(value)
+        unquote(fun_value)
       end
     end
   end
@@ -83,12 +87,10 @@ defmodule Elixirdo.Base.Utils do
     parse_class(class, nil)
   end
 
-
-  def parse_class({class, ctx, [{class_param, _, class_arguments} | extends]}, caller) do
-    line = Keyword.get(ctx, :line)
+  def parse_class({class, _, [{class_param, _, class_arguments} | extends]}, caller) do
     class_attr = parse_class_name(class, caller)
     extends = parse_extends(class_param, merge_argumentlists(extends))
-    class_attr ++ [line: line, class_param: class_param, class_arguments: class_arguments, extends: extends]
+    class_attr ++ [class_param: class_param, class_arguments: class_arguments, extends: extends]
   end
 
   def parse_extends(class_param, [{extend_param, {extend_class, _, _}} | t]) do

@@ -5,7 +5,7 @@ defmodule Elixirdo.Typeclass.Functor do
   defmacro __using__(_) do
     quote do
       alias Elixirdo.Typeclass.Functor
-      import Elixirdo.Typeclass.Functor, only: [functor: 0]
+      import_typeclass Functor.functor
     end
   end
 

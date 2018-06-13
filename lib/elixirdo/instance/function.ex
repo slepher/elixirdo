@@ -2,8 +2,11 @@ defmodule Elixirdo.Instance.Function do
   use Elixirdo.Base
 
   use Elixirdo.Typeclass.Monad
+  use Elixirdo.Expand
 
-  deftype function(r, a) :: ((r -> a))
+  expand do
+    deftype function(r, a) :: ((r -> a))
+  end
 
   definstance functor function(r) do
     def fmap(f, r) do

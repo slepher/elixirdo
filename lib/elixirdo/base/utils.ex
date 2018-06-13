@@ -37,6 +37,33 @@ defmodule Elixirdo.Base.Utils do
     attribute
   end
 
+  def export_attribute(module, name, value) do
+    Module.put_attribute(module, name, value)
+    quote do
+      def unquote(name)() do
+        unquote(value)
+      end
+    end
+  end
+
+  def exported_attribute(module, target_module, attribute_name) do
+    if(module == target_module) do
+      Module.get_attribute(module, attribute_name)
+    else
+      :erlang.apply(target_module, attribute_name, [])
+    end
+  end
+
+  def import_attribute(module, target_module, attribute_name) do
+    if(module == target_module) do
+      Module.get_attribute(module, attribute_name)
+    else
+      attribute_value = :erlang.apply(target_module, attribute_name, [])
+      Module.put_attribute(module, attribute_name, attribute_value)
+      attribute_value
+    end
+  end
+
   defmacro set_module_attribute(module, key, value) do
     Module.put_attribute(module, key, value)
   end
@@ -52,13 +79,16 @@ defmodule Elixirdo.Base.Utils do
     fn pos -> Macro.var(String.to_atom(name <> Integer.to_string(pos)), module) end
   end
 
-  def parse_class({class, _, [{class_param, _, class_arguments}]}) do
-    [class: class, class_param: class_param, class_arguments: class_arguments, extends: []]
+  def parse_class(class) do
+    parse_class(class, nil)
   end
 
-  def parse_class({class, _, [{class_param, _, class_arguments} | extends]}) do
+
+  def parse_class({class, ctx, [{class_param, _, class_arguments} | extends]}, caller) do
+    line = Keyword.get(ctx, :line)
+    class_attr = parse_class_name(class, caller)
     extends = parse_extends(class_param, merge_argumentlists(extends))
-    [class: class, class_param: class_param, class_arguments: class_arguments, extends: extends]
+    class_attr ++ [line: line, class_param: class_param, class_arguments: class_arguments, extends: extends]
   end
 
   def parse_extends(class_param, [{extend_param, {extend_class, _, _}} | t]) do
@@ -72,6 +102,16 @@ defmodule Elixirdo.Base.Utils do
   def parse_extends(_class_param, []) do
     []
   end
+
+  def parse_class_name({:., _, [module, class]}, caller) do
+    module = Macro.expand(module, caller)
+    [class: class, class_module: module ]
+  end
+
+  def parse_class_name(class, _caller) when is_atom(class) do
+    [class: class, class_module: nil]
+  end
+
 
   def parse_def({:::, _, [function_defs, function_returns]}, with_block) do
     def_opts = parse_function_def(function_defs, with_block)

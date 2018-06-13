@@ -6,14 +6,25 @@ defmodule Elixirdo.Base.Typeclass do
   defmacro __using__(_) do
     quote do
       alias Elixirdo.Base.TYpeclass
-      import Elixirdo.Base.Typeclass, only: [defclass: 2, __defclass_def: 1, __defclass_def: 2, __defclass_def: 3]
+
+      import Elixirdo.Base.Typeclass,
+        only: [
+          defclass: 2,
+          __defclass_def: 1,
+          __defclass_def: 2,
+          __defclass_def: 3,
+          import_typeclass: 1
+        ]
       Module.register_attribute(__MODULE__, :elixirdo_typeclass, accumulate: false, persist: true)
     end
   end
 
   defmacro defclass(name, do: block) do
     class_attr = Elixirdo.Base.Utils.parse_class(name)
-    [class: class_name, class_param: class_param] = Keyword.take(class_attr, [:class, :class_param])
+
+    [class: class_name, class_param: class_param] =
+      Keyword.take(class_attr, [:class, :class_param])
+
     module = __CALLER__.module
     Module.put_attribute(module, :class_name, class_name)
     Module.put_attribute(module, :class_param, class_param)
@@ -22,24 +33,15 @@ defmodule Elixirdo.Base.Typeclass do
 
     quote do
       @elixirdo_typeclass unquote(class_name)
-
       unquote(block)
-      Elixirdo.Base.Typeclass.typeclass_macro(unquote(class_name), unquote(module))
+      Elixirdo.Base.Typeclass.typeclass_macro(unquote(class_name))
     end
   end
 
-  defmacro typeclass_macro(class_name, instance_module) do
+  defmacro typeclass_macro(class_name) do
     module = __CALLER__.module
     functions = Module.get_attribute(module, :functions)
-
-    quote do
-      defmacro unquote(class_name)() do
-        module = __CALLER__.module
-        Module.put_attribute(module, :typeclass_module, unquote(instance_module))
-        Module.put_attribute(module, :typeclass_functions, unquote(functions))
-        nil
-      end
-    end
+    Elixirdo.Base.Utils.export_attribute(module, class_name, [module: module, functions: functions])
   end
 
   defmacro __defclass_def(params) do
@@ -59,18 +61,20 @@ defmodule Elixirdo.Base.Typeclass do
     do_defclass_def(params, opts, block, __CALLER__.module)
   end
 
-  def do_defclass_def(params, opts, block, module) do
+  defmacro import_typeclass({{:., _, [from_module, typeclass]}, _, _}) do
+    module = __CALLER__.module
+    from_module = Macro.expand(from_module, __CALLER__)
+    Utils.import_attribute(module, from_module, typeclass)
+    nil
+  end
+
+  def do_defclass_def(params, _opts, block, module) do
     def_spec =
       if block do
         Utils.parse_def(params, true)
       else
         Utils.parse_def(params, false)
       end
-
-    run_def_spec(def_spec, opts, block, module)
-  end
-
-  def run_def_spec(def_spec, _typeclasses, block, module) do
     class_name = Module.get_attribute(module, :class_name)
     class_param = Module.get_attribute(module, :class_param)
 
@@ -138,6 +142,8 @@ defmodule Elixirdo.Base.Typeclass do
       unquote_splicing(default_impl)
     end
   end
+
+
 
   def trans_vars(arities, param_types, param_names, class_name, class_param, module) do
     :lists.filter(
@@ -302,9 +308,12 @@ defmodule Elixirdo.Base.Typeclass do
             type_class
         end
       end)
+
     class_clauses = classes |> Enum.map(fn class -> class_clause(class) end)
+
     quote do
       unquote_splicing(class_clauses)
+
       def is_typeclass(_) do
         false
       end

@@ -10,10 +10,9 @@ defmodule Elixirdo.Base.Instance do
   end
 
   defmacro definstance(name, do: block) do
-    class_attr = Elixirdo.Base.Utils.parse_class(name)
-
-    [class: class_name, class_param: type_name, class_arguments: type_arguments, extends: extends] =
-      Keyword.take(class_attr, [:class, :class_param, :class_arguments, :extends])
+    class_attr = Elixirdo.Base.Utils.parse_class(name, __CALLER__)
+    [class: class_name, class_module: typeclass_module, line: line, class_param: type_name, class_arguments: type_arguments, extends: extends] =
+      Keyword.take(class_attr, [:class, :class_module, :line, :class_param, :class_arguments, :extends])
 
     type_arguments = type_arguments || []
 
@@ -27,8 +26,18 @@ defmodule Elixirdo.Base.Instance do
     Module.put_attribute(module, :functions, [])
     block = Elixirdo.Base.Utils.rename_macro(:def, :__definstance_def, block)
 
+    if (typeclass_module) do
+      Utils.import_attribute(module, typeclass_module, class_name)
+    end
+
+    typeclass_attrs = Module.get_attribute(module, class_name)
+
+    if(!typeclass_attrs) do
+      title = "definstance " <> (name |> Macro.to_string)
+      :erlang.error(RuntimeError.exception("typeclass " <> Atom.to_string(class_name) <> " is not imported in " <> Atom.to_string(module) <> ":" <> Integer.to_string(line) <> " at " <> title))
+    end
+
     quote do
-      unquote(class_name)()
       @elixirdo_instance [{unquote(class_name), unquote(type_name)}]
       unquote(block)
       Elixirdo.Base.Instance.after_definstance()
@@ -41,8 +50,9 @@ defmodule Elixirdo.Base.Instance do
     type_name = Utils.get_delete_attribute(module, :type_name)
     type_arguments = Utils.get_delete_attribute(module, :type_arguments)
     type_extends = Utils.get_delete_attribute(module, :type_extends)
-    typeclass_module = Utils.get_delete_attribute(module, :typeclass_module)
-    typeclass_functions = Utils.get_delete_attribute(module, :typeclass_functions)
+    class_name = Utils.get_delete_attribute(module, :class_name)
+
+    [module: typeclass_module, functions: typeclass_functions] = Module.get_attribute(module, class_name)
 
     elixirdo_type_funs = Module.get_attribute(module, :elixirdo_type_fun) || []
 
@@ -50,19 +60,23 @@ defmodule Elixirdo.Base.Instance do
     type_arguments = inject_typed_arguments(type_arguments, type_extends)
     type_argument = build_type_pattern(type_name, type_arguments, elixirdo_type_funs)
 
-    quote do
-      (unquote_splicing(
-         inject_functions(
-           typeclass_module,
-           module,
-           type_name,
-           type_pattern,
-           type_argument,
-           typeclass_functions,
-           functions
-         )
-       ))
-    end
+    result =
+      quote do
+        (unquote_splicing(
+           inject_functions(
+             typeclass_module,
+             module,
+             type_name,
+             type_pattern,
+             type_argument,
+             typeclass_functions,
+             functions
+           )
+         ))
+      end
+
+    result |> Macro.to_string() |> IO.puts()
+    result
   end
 
   def inject_functions(
@@ -85,6 +99,7 @@ defmodule Elixirdo.Base.Instance do
           else
             [longdef(module, name, arity, type_name, type_argument) | acc]
           end
+
         if check_impls(arity, impl_arities) do
           acc
         else

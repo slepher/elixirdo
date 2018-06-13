@@ -11,7 +11,7 @@ defmodule Elixirdo.Typeclass.Monad do
       use Elixirdo.Typeclass.Applicative
       use Elixirdo.Notation.Do
       alias Elixirdo.Typeclass.Monad
-      import Elixirdo.Typeclass.Monad, only: [monad: 0]
+      import_typeclass Monad.monad
     end
   end
 

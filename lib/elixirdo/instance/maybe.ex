@@ -5,6 +5,7 @@ defmodule Elixirdo.Instance.Maybe do
 
   use Elixirdo.Typeclass.Monad
 
+
   deftype maybe(a) :: {:just, a} | :nothing
 
   definstance functor(maybe) do

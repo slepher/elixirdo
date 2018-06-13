@@ -4,7 +4,10 @@ defmodule Elixirdo.Instance.List do
 
   use Elixirdo.Typeclass.Monad
 
-  import Elixirdo.Typeclass.Traversable, only: [traversable: 0]
+  import_typeclass Functor.functor
+  import_typeclass Applicative.applicative
+  import_typeclass Monad.monad
+  import_typeclass Elixirdo.Typeclass.Traversable.traversable
 
   deftype(anonymous(a) :: list(a), as: :list)
 

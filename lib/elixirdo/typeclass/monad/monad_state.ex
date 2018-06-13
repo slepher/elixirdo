@@ -7,7 +7,7 @@ defmodule Elixirdo.Typeclass.Monad.MonadState do
   defmacro __using__(_) do
     quote do
       alias Elixirdo.Typeclass.Monad.MonadState
-      import MonadState, only: [monad_state: 0]
+      import_typeclass MonadState.monad_state
     end
   end
 

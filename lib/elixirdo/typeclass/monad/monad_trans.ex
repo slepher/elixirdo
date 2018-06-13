@@ -8,7 +8,7 @@ defmodule Elixirdo.Typeclass.Monad.MonadTrans do
   defmacro __using__(_) do
     quote do
       alias Elixirdo.Typeclass.Monad.MonadTrans
-      import MonadTrans, only: [monad_trans: 0]
+      import_typeclass MonadTrans.monad_trans
     end
   end
 

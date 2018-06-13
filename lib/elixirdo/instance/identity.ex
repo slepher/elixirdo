@@ -8,7 +8,7 @@ defmodule Elixirdo.Instance.Identity do
 
   deftype identity(a) :: {:identity, a}
 
-  definstance functor identity do
+  definstance Functor.functor identity do
     def fmap(f, {:identity, a}) do
       {:identity, f.(a)}
     end

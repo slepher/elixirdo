@@ -1,14 +1,11 @@
 defmodule Elixirdo.Base.Type do
   alias Elixirdo.Base.Utils
 
-  require Record
-  Record.defrecord(:cache, Record.extract(:cache, from_lib: "hipe/cerl/erl_types.erl"))
-
   defstruct [:module, :name, :details]
 
   defmacro __using__(_) do
     quote do
-      import Elixirdo.Base.Type, only: [deftype: 1, deftype: 2]
+      import Elixirdo.Base.Type, only: [deftype: 1, deftype: 2, import_type: 2]
       Module.register_attribute(__MODULE__, :elixirdo_type, accumulate: true, persist: true)
     end
   end
@@ -58,36 +55,33 @@ defmodule Elixirdo.Base.Type do
         elixirdo_types = Module.get_attribute(module, :elixirdo_type) || []
         Module.put_attribute(module, :elixirdo_type, [{as, {name, arity}}|elixirdo_types])
       end
-    new_function =
     case typeclass_arguments do
       [] ->
         elixirdo_type_funs = Module.get_attribute(module, :elixirdo_type_fun) || []
         elixirdo_type_fun = fn _type_args -> as end
         Module.put_attribute(module, :elixirdo_type_fun, [{as, elixirdo_type_fun}|elixirdo_type_funs])
-        [
-          quote do
-            def unquote(as)() do
-              unquote(as)
-            end
-          end
-        ]
-      typeclass_arguments ->
+      _ ->
         elixirdo_type_funs = Module.get_attribute(module, :elixirdo_type_fun) || []
         elixirdo_type_fun =fn type_args -> {:{}, [], [as|Enum.map(typeclass_arguments_offsets, fn n -> :lists.nth(n, type_args) end)]} end
         Module.put_attribute(module, :elixirdo_type_fun, [{as, elixirdo_type_fun}|elixirdo_type_funs])
-
-        [
-          quote do
-            def unquote(as)(unquote_splicing(typeclass_arguments)) do
-              {unquote(as), unquote_splicing(typeclass_arguments)}
-            end
-          end
-        ]
     end
+    Module.put_attribute(module, as, module)
+
+    exported_attribute = Utils.export_attribute(module, as, module)
 
     quote do
       @type unquote(spec)
-      unquote_splicing(new_function)
+      unquote(exported_attribute)
+    end
+  end
+
+  defmacro import_type(from_module, type) do
+    module = __CALLER__.module
+    from_module = Macro.expand(from_module, __CALLER__)
+    if :erlang.function_exported(module, type, 0) do
+        Module.put_attribute(module, type, from_module)
+    else
+      :erlang.error(RuntimeError.exception("type " <> Atom.to_string(type) <> "is not exported from " <> Atom.to_string(from_module)))
     end
   end
 

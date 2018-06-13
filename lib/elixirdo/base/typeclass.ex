@@ -130,8 +130,8 @@ defmodule Elixirdo.Base.Typeclass do
                 module
               )
             )
-
-            module = Elixirdo.Base.Generated.module(type, unquote(class_name))
+            type_name = Elixirdo.Base.Generated.type_name(type)
+            module = Elixirdo.Base.Generated.module(type_name, unquote(class_name))
             module.unquote(name)(unquote_splicing(params), type)
           end,
           [unquote_splicing(u_params)],

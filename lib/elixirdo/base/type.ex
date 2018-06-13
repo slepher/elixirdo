@@ -65,7 +65,7 @@ defmodule Elixirdo.Base.Type do
         _  -> Enum.to_list(1..length(args))
       end
 
-    typeclass_arguments_offsets =
+    typeclass_argument_offsets =
       args_offsets
       |> Enum.filter(fn n ->
         type_arg_name = Utils.parse_type_param(:lists.nth(n, args))
@@ -73,17 +73,17 @@ defmodule Elixirdo.Base.Type do
       end)
 
     if quoted do
-      type_fun_in_fun(type_name, typeclass_arguments_offsets)
+      type_fun_in_fun(type_name, typeclass_argument_offsets)
     else
-      type_fun_in_attr(type_name, typeclass_arguments_offsets)
+      type_fun_in_attr(type_name, typeclass_argument_offsets)
     end
   end
 
-  def type_fun_in_fun(type_name, typeclass_arguments_offsets) do
+  def type_fun_in_fun(type_name, typeclass_argument_offsets) do
     quote do
       fn type_args ->
         type_name = unquote(type_name)
-        args = Enum.map(unquote(typeclass_arguments_offsets), fn n -> :lists.nth(n, type_args) end)
+        args = Enum.map(unquote(typeclass_argument_offsets), fn n -> :lists.nth(n, type_args) end)
         case args do
           [] -> quote do: unquote(type_name)
           _  -> quote do: {unquote(type_name), unquote_splicing(args)}
@@ -92,9 +92,9 @@ defmodule Elixirdo.Base.Type do
     end
   end
 
-  def type_fun_in_attr(type_name, typeclass_arguments_offsets) do
+  def type_fun_in_attr(type_name, typeclass_argument_offsets) do
     fn type_args ->
-      args = Enum.map(typeclass_arguments_offsets, fn n -> :lists.nth(n, type_args) end)
+      args = Enum.map(typeclass_argument_offsets, fn n -> :lists.nth(n, type_args) end)
       case args do
         [] -> quote do: unquote(type_name)
         _  -> quote do: {unquote(type_name), unquote_splicing(args)}
@@ -137,19 +137,18 @@ defmodule Elixirdo.Base.Type do
   def extract_elixirdo_types(paths) do
     cache = :type_expansion.cache()
 
-    mfas =
+    types =
       Utils.extract_matching_by_attribute(paths, 'Elixir.', fn module, attributes ->
         case attributes[:elixirdo_type] do
           nil ->
             nil
-
           types ->
             types
             |> Enum.map(fn name -> {module, name} end)
         end
       end)
 
-    IO.inspect mfas
+    types = :lists.flatten(types)
 
     expanded_types =
       :lists.foldl(
@@ -165,7 +164,7 @@ defmodule Elixirdo.Base.Type do
           end
         end,
         [],
-        :lists.flatten(mfas)
+        types
       )
 
     errors = :type_expansion.cache_errors(cache)
@@ -174,8 +173,40 @@ defmodule Elixirdo.Base.Type do
     format_errors(errors)
 
     quote do
-      (unquote_splicing(types_to_clauses(expanded_types)))
+      unquote_splicing(type_name_clauses(types))
+      unquote_splicing(types_to_clauses(expanded_types))
     end
+  end
+
+  def type_name_clauses(types) do
+    types |> Enum.map(
+      fn {module, name} ->
+        [arity: arity, type_fun: type_fun] = Keyword.take(:erlang.apply(module, name, []), [:arity, :type_fun])
+        args =
+          case arity do
+            0 ->
+              []
+            _ -> Enum.to_list(1..arity) |> Enum.map(fn _n -> (quote do: _) end)
+          end
+        type_pattern = type_fun.(args)
+        name_clause =
+          quote do
+            def type_name(unquote(name)) do
+              unquote(name)
+            end
+          end
+        if (type_pattern == name) do
+          [name_clause]
+        else
+          [name_clause,
+          quote do
+            def type_name(unquote(type_pattern)) do
+              unquote(name)
+            end
+          end
+        ]
+        end
+      end) |> :lists.flatten
   end
 
   def types_to_clauses(expanded_types) do

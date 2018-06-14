@@ -4,9 +4,9 @@ defmodule Elixirdo.Instance.Function do
   use Elixirdo.Typeclass.Monad
   use Elixirdo.Expand
 
-  deftype function(r, a) :: ((r -> a))
+  deftype function(r, a) :: (r -> a)
 
-  definstance functor function(r) do
+  definstance functor(function(r)) do
     def fmap(f, r) do
       fn a ->
         f.(r.(a))
@@ -14,7 +14,7 @@ defmodule Elixirdo.Instance.Function do
     end
   end
 
-  definstance applicative function(r) do
+  definstance applicative(function(r)) do
     def pure(a) do
       fn _ -> a end
     end
@@ -28,9 +28,9 @@ defmodule Elixirdo.Instance.Function do
     end
   end
 
-  definstance monad function(r) do
+  definstance monad(function(r)) do
     def bind(fa, k_fb) do
-      fn r -> (k_fb.(fa.(r))).(r) end
+      fn r -> k_fb.(fa.(r)).(r) end
     end
   end
 

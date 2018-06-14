@@ -6,7 +6,7 @@ defmodule Elixirdo.Typeclass.Applicative do
     quote do
       use Elixirdo.Typeclass.Functor
       alias Elixirdo.Typeclass.Applicative
-      import_typeclass Applicative.applicative
+      import_typeclass Applicative.applicative()
     end
   end
 

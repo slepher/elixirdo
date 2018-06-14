@@ -13,6 +13,5 @@ defmodule Elixirdo.Typeclass.Monad.MonadReader do
     end
 
     def local((r -> r), m(r)) :: m(r)
-
   end
 end

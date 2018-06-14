@@ -6,8 +6,11 @@ defmodule Elixirdo.Typeclass.Profunctor do
     fn ubc ->
       Undetermined.map(
         fn profunctor, profunctor_bc ->
-          (do_dimap(ab, cd, profunctor)).(profunctor_bc)
-        end, ubc, uprofunctor)
+          do_dimap(ab, cd, profunctor).(profunctor_bc)
+        end,
+        ubc,
+        uprofunctor
+      )
     end
   end
 

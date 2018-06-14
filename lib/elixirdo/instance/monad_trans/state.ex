@@ -28,7 +28,7 @@ defmodule Elixirdo.Instance.MonadTrans.State do
     new_state_t(fn state -> f.(run(state_t_a, state)) end)
   end
 
-  definstance functor state_t(s, m), m: functor do
+  definstance functor(state_t(s, m), m: functor) do
     def fmap(f, state_t_a) do
       map(
         fn functor_a ->
@@ -39,45 +39,42 @@ defmodule Elixirdo.Instance.MonadTrans.State do
     end
   end
 
-  definstance applicative state_t(s, m), m: monad do
+  definstance applicative(state_t(s, m), m: monad) do
     def pure(a) do
       do_state(fn s -> {a, s} end, m)
     end
 
     def ap(state_t_f, state_t_a) do
-      new_state_t(
-        fn s ->
-          monad m do
-            {f, ns} <- run(state_t_f, s)
-            {a, nns} <- run(state_t_a, ns)
-            Monad.return({f.(a), nns}, m)
-          end
-        end)
+      new_state_t(fn s ->
+        monad m do
+          {f, ns} <- run(state_t_f, s)
+          {a, nns} <- run(state_t_a, ns)
+          Monad.return({f.(a), nns}, m)
+        end
+      end)
     end
   end
 
-  definstance monad state_t(s, m), m: monad  do
+  definstance monad(state_t(s, m), m: monad) do
     def bind(state_t_a, afb) do
-      new_state_t(
-        fn s ->
-          monad m do
-            {a, ns} <- run(state_t_a, s)
-            run(afb.(a), ns)
-          end
-        end)
+      new_state_t(fn s ->
+        monad m do
+          {a, ns} <- run(state_t_a, s)
+          run(afb.(a), ns)
+        end
+      end)
     end
   end
 
-  definstance monad_trans state_t(s, m), m: monad do
+  definstance monad_trans(state_t(s, m), m: monad) do
     def lift(monad_a) do
-      new_state_t(
-        fn s ->
-          Monad.lift_m(fn a -> {a, s} end, monad_a, m)
-        end)
+      new_state_t(fn s ->
+        Monad.lift_m(fn a -> {a, s} end, monad_a, m)
+      end)
     end
   end
 
-  definstance monad_state state_t(s, m), m: monad do
+  definstance monad_state(state_t(s, m), m: monad) do
     def state(f) do
       do_state(f, m)
     end

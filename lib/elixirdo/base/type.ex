@@ -35,19 +35,21 @@ defmodule Elixirdo.Base.Type do
 
     if exported do
       elixirdo_types = Module.get_attribute(module, :elixirdo_type) || []
-      Module.put_attribute(module, :elixirdo_type, [as| elixirdo_types])
+      Module.put_attribute(module, :elixirdo_type, [as | elixirdo_types])
       elixirdo_type_fun_in_fun = type_fun(as, args, typeclasses, true)
       elixirdo_type_fun_in_attr = type_fun(as, args, typeclasses, false)
       type_attributes = [name: as, type_name: name, arity: arity]
       type_attribute_in_attr = type_attributes ++ [type_fun: elixirdo_type_fun_in_attr]
       type_attribute_in_fun = type_attributes ++ [type_fun: elixirdo_type_fun_in_fun]
+
       exported_attribute = Utils.export_attribute(module, as, type_attribute_in_attr, type_attribute_in_fun)
+
       quote do
         @type unquote(spec)
         unquote(exported_attribute)
       end
     else
-      quote do: @type unquote(spec)
+      quote do: @type(unquote(spec))
     end
   end
 
@@ -62,7 +64,7 @@ defmodule Elixirdo.Base.Type do
     args_offsets =
       case args do
         [] -> []
-        _  -> Enum.to_list(1..length(args))
+        _ -> Enum.to_list(1..length(args))
       end
 
     typeclass_argument_offsets =
@@ -84,9 +86,10 @@ defmodule Elixirdo.Base.Type do
       fn type_args ->
         type_name = unquote(type_name)
         args = Enum.map(unquote(typeclass_argument_offsets), fn n -> :lists.nth(n, type_args) end)
+
         case args do
           [] -> quote do: unquote(type_name)
-          _  -> quote do: {unquote(type_name), unquote_splicing(args)}
+          _ -> quote do: {unquote(type_name), unquote_splicing(args)}
         end
       end
     end
@@ -95,9 +98,10 @@ defmodule Elixirdo.Base.Type do
   def type_fun_in_attr(type_name, typeclass_argument_offsets) do
     fn type_args ->
       args = Enum.map(typeclass_argument_offsets, fn n -> :lists.nth(n, type_args) end)
+
       case args do
         [] -> quote do: unquote(type_name)
-        _  -> quote do: {unquote(type_name), unquote_splicing(args)}
+        _ -> quote do: {unquote(type_name), unquote_splicing(args)}
       end
     end
   end
@@ -142,6 +146,7 @@ defmodule Elixirdo.Base.Type do
         case attributes[:elixirdo_type] do
           nil ->
             nil
+
           types ->
             types
             |> Enum.map(fn name -> {module, name} end)
@@ -154,6 +159,7 @@ defmodule Elixirdo.Base.Type do
       :lists.foldl(
         fn {module, name}, acc ->
           [type_name: type_name, arity: arity] = Keyword.take(:erlang.apply(module, name, []), [:type_name, :arity])
+
           case :type_expansion.expand(module, type_name, arity, cache) do
             :error ->
               acc
@@ -179,34 +185,42 @@ defmodule Elixirdo.Base.Type do
   end
 
   def type_name_clauses(types) do
-    types |> Enum.map(
-      fn {module, name} ->
-        [arity: arity, type_fun: type_fun] = Keyword.take(:erlang.apply(module, name, []), [:arity, :type_fun])
-        args =
-          case arity do
-            0 ->
-              []
-            _ -> Enum.to_list(1..arity) |> Enum.map(fn _n -> (quote do: _) end)
+    types
+    |> Enum.map(fn {module, name} ->
+      [arity: arity, type_fun: type_fun] = Keyword.take(:erlang.apply(module, name, []), [:arity, :type_fun])
+
+      args =
+        case arity do
+          0 ->
+            []
+
+          _ ->
+            Enum.to_list(1..arity) |> Enum.map(fn _n -> quote do: _ end)
+        end
+
+      type_pattern = type_fun.(args)
+
+      name_clause =
+        quote do
+          def type_name(unquote(name)) do
+            unquote(name)
           end
-        type_pattern = type_fun.(args)
-        name_clause =
-          quote do
-            def type_name(unquote(name)) do
-              unquote(name)
-            end
-          end
-        if (type_pattern == name) do
-          [name_clause]
-        else
-          [name_clause,
+        end
+
+      if type_pattern == name do
+        [name_clause]
+      else
+        [
+          name_clause,
           quote do
             def type_name(unquote(type_pattern)) do
               unquote(name)
             end
           end
         ]
-        end
-      end) |> :lists.flatten
+      end
+    end)
+    |> :lists.flatten()
   end
 
   def types_to_clauses(expanded_types) do

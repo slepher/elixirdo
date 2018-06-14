@@ -50,5 +50,4 @@ defmodule Elixirdo.Instance.MonadTrans.Cont do
       end)
     end
   end
-
 end

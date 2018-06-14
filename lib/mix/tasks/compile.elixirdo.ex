@@ -37,17 +37,18 @@ defmodule Mix.Tasks.Compile.Elixirdo do
   def generate_test_module(output, type_function, typeclass_function, instance_function) do
     File.mkdir_p!(output)
 
-    content = quote do
-      defmodule Elixirdo.Base.Generated do
-        unquote(type_function)
-        unquote(typeclass_function)
-        unquote(instance_function)
+    content =
+      quote do
+        defmodule Elixirdo.Base.Generated do
+          unquote(type_function)
+          unquote(typeclass_function)
+          unquote(instance_function)
+        end
       end
-    end
 
-    #type_function |> Macro.to_string |> IO.puts
-    #typeclass_function |> Macro.to_string |> IO.puts
-    #instance_function |> Macro.to_string |> IO.puts
+    # type_function |> Macro.to_string |> IO.puts
+    # typeclass_function |> Macro.to_string |> IO.puts
+    # instance_function |> Macro.to_string |> IO.puts
 
     Code.compiler_options(ignore_module_conflict: true)
     [{module, binary}] = Code.compile_quoted(content)

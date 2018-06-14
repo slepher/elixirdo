@@ -15,6 +15,7 @@ defmodule Elixirdo.Base.Typeclass do
           __defclass_def: 3,
           import_typeclass: 1
         ]
+
       Module.register_attribute(__MODULE__, :elixirdo_typeclass, accumulate: false, persist: true)
     end
   end
@@ -22,8 +23,7 @@ defmodule Elixirdo.Base.Typeclass do
   defmacro defclass(name, do: block) do
     class_attr = Elixirdo.Base.Utils.parse_class(name)
 
-    [class: class_name, class_param: class_param] =
-      Keyword.take(class_attr, [:class, :class_param])
+    [class: class_name, class_param: class_param] = Keyword.take(class_attr, [:class, :class_param])
 
     module = __CALLER__.module
     Module.put_attribute(module, :class_name, class_name)
@@ -41,7 +41,7 @@ defmodule Elixirdo.Base.Typeclass do
   defmacro typeclass_macro(class_name) do
     module = __CALLER__.module
     functions = Module.get_attribute(module, :functions)
-    Elixirdo.Base.Utils.export_attribute(module, class_name, [module: module, functions: functions])
+    Elixirdo.Base.Utils.export_attribute(module, class_name, module: module, functions: functions)
   end
 
   defmacro __defclass_def(params) do
@@ -75,11 +75,11 @@ defmodule Elixirdo.Base.Typeclass do
       else
         Utils.parse_def(params, false)
       end
+
     class_name = Module.get_attribute(module, :class_name)
     class_param = Module.get_attribute(module, :class_param)
 
-    [name, param_types, _return_type] =
-      Keyword.values(Keyword.take(def_spec, [:name, :type_params, :return_type]))
+    [name, param_types, _return_type] = Keyword.values(Keyword.take(def_spec, [:name, :type_params, :return_type]))
 
     arity = length(param_types)
     arities = :lists.seq(1, arity)
@@ -106,9 +106,7 @@ defmodule Elixirdo.Base.Typeclass do
         arities
       )
 
-    out_params =
-      :lists.map(fn param -> Macro.var(String.to_atom(param), module) end, out_param_names) ++
-        [quote(do: u_type \\ unquote(class_name))]
+    out_params = :lists.map(fn param -> Macro.var(String.to_atom(param), module) end, out_param_names) ++ [quote(do: u_type \\ unquote(class_name))]
 
     rest_arities = arities -- u_arities
 
@@ -130,6 +128,7 @@ defmodule Elixirdo.Base.Typeclass do
                 module
               )
             )
+
             type_name = Elixirdo.Base.Generated.type_name(type)
             module = Elixirdo.Base.Generated.module(type_name, unquote(class_name))
             module.unquote(name)(unquote_splicing(params), type)

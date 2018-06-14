@@ -18,14 +18,13 @@ defmodule Elixirdo.Notation.Do do
   end
 
   def do_monad(typeclass, do: body) do
-    [h | t] = body |> normalize |> Enum.reverse
+    [h | t] = body |> normalize |> Enum.reverse()
 
     Enum.reduce(t, h, fn
       {:=, _, [assign, value]}, continue ->
         quote do: unquote(value) |> (fn unquote(assign) -> unquote(continue) end).()
 
       {:<-, _, [assign, value]}, continue ->
-
         quote do
           Elixirdo.Typeclass.Monad.bind(
             unquote(value),
@@ -44,5 +43,4 @@ defmodule Elixirdo.Notation.Do do
         end
     end)
   end
-
 end

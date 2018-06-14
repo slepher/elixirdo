@@ -8,13 +8,13 @@ defmodule Elixirdo.Instance.Identity do
 
   deftype identity(a) :: {:identity, a}
 
-  definstance Functor.functor identity do
+  definstance functor(identity) do
     def fmap(f, {:identity, a}) do
       {:identity, f.(a)}
     end
   end
 
-  definstance applicative identity do
+  definstance applicative(identity) do
     def pure(a) do
       {:identity, a}
     end
@@ -24,7 +24,7 @@ defmodule Elixirdo.Instance.Identity do
     end
   end
 
-  definstance monad identity do
+  definstance monad(identity) do
     def bind({:identity, a}, afb) do
       afb.(a)
     end

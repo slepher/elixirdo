@@ -8,6 +8,7 @@ defmodule Elixirdo.Base.Undetermined do
     case(Generated.is_typeclass(typeclass)) do
       true ->
         %Undetermined{typeclass: typeclass, inner_function: f}
+
       false ->
         f.(typeclass)
     end
@@ -33,6 +34,7 @@ defmodule Elixirdo.Base.Undetermined do
     case(Generated.is_typeclass(typeclass)) do
       true ->
         fs.()
+
       false ->
         f.(uf.(typeclass), typeclass)
     end
@@ -43,6 +45,7 @@ defmodule Elixirdo.Base.Undetermined do
       true ->
         type = Generated.type(a)
         f.(a, type)
+
       false ->
         f.(a, typeclass)
     end
@@ -57,6 +60,7 @@ defmodule Elixirdo.Base.Undetermined do
     case Generated.is_typeclass(typeclass) do
       true ->
         do_map_list(f, values, typeclass, values)
+
       false ->
         f.(map_type(values, typeclass), typeclass)
     end

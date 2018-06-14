@@ -1,5 +1,4 @@
 defmodule Elixirdo.Base.Generated do
-
   def type(_type) do
     :undefined
   end

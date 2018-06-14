@@ -1,5 +1,4 @@
 defmodule Elixirdo.Typeclass.Monad.MonadWriter do
-
   use Elixirdo.Base
   alias Elixirdo.Typeclass.Monad
 
@@ -19,6 +18,6 @@ defmodule Elixirdo.Typeclass.Monad.MonadWriter do
   end
 
   def censor(f, monad_writer_a, m) do
-    pass(Monad.lift_m(fn (a) -> {a, f} end, monad_writer_a, m), m)
+    pass(Monad.lift_m(fn a -> {a, f} end, monad_writer_a, m), m)
   end
 end

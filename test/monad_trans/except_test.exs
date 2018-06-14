@@ -12,6 +12,7 @@ defmodule MonadTrans.ExceptTest do
   @tag timeout: 1000
   test "fmap" do
     f = fn a -> a * 2 end
+
     assert %Except{data: {:just, {:right, 2}}} == Functor.fmap(f, %Except{data: {:just, {:right, 1}}})
   end
 
@@ -29,12 +30,10 @@ defmodule MonadTrans.ExceptTest do
     mtb = %Except{data: {:just, {:right, 2}}}
 
     mtc =
-    expand do
       monad :monad do
         a <- mta
         Monad.return(a * 2)
       end
-    end
 
     assert mtb == mtc
   end

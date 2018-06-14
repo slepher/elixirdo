@@ -1,7 +1,8 @@
 defmodule Elixirdo.Typeclass.Traversable do
   use Elixirdo.Base
   use Elixirdo.Expand
-  defclass traversable t, t: foldable, t: functor do
+
+  defclass traversable(t, t: foldable, t: functor) do
     def traverse(af_b: a ~> f(b), ta: t(a)) :: f(t(b)), f: applicative do
       t.sequence_a(t.fmap(af_b, ta))
     end

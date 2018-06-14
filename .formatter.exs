@@ -1,4 +1,9 @@
 # Used by "mix format"
 [
-  inputs: ["mix.exs", "{config,lib,test}/**/*.{ex,exs}"]
+  locals_without_parens: [defclass: :*, deftype: :*, definstance: :*, import_typeclass: :*, import_type: :*],
+  inputs: ["mix.exs", "{config,lib,test}/**/*.{ex,exs}"],
+  line_length: 160,
+  export: [
+    locals_without_parens: [defclass: :*, deftype: :*, definstance: :*, import_typeclass: :*, import_type: :*]
+  ]
 ]

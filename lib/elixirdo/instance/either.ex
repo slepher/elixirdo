@@ -11,13 +11,14 @@ defmodule Elixirdo.Instance.Either do
       case eab do
         {:left, a} ->
           fac.(a)
+
         {:right, b} ->
           fbc.(b)
       end
     end
   end
 
-  definstance functor either(e) do
+  definstance functor(either(e)) do
     def fmap(_f, {:left, e}) do
       {:left, e}
     end
@@ -27,7 +28,7 @@ defmodule Elixirdo.Instance.Either do
     end
   end
 
-  definstance applicative either(e) do
+  definstance applicative(either(e)) do
     def pure(a) do
       {:right, a}
     end
@@ -45,7 +46,7 @@ defmodule Elixirdo.Instance.Either do
     end
   end
 
-  definstance monad either(e) do
+  definstance monad(either(e)) do
     def bind({:left, e}, _afb) do
       {:left, e}
     end
@@ -54,6 +55,7 @@ defmodule Elixirdo.Instance.Either do
       case afb.(a) do
         {:right, b} ->
           {:right, b}
+
         {:left, e} ->
           {:left, e}
       end

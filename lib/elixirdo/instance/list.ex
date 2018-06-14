@@ -4,9 +4,9 @@ defmodule Elixirdo.Instance.List do
 
   use Elixirdo.Typeclass.Monad
 
-  import_typeclass Elixirdo.Typeclass.Traversable.traversable
+  import_typeclass Elixirdo.Typeclass.Traversable.traversable()
 
-  deftype(anonymous(a) :: list(a), as: :list)
+  deftype anonymous(a) :: list(a), as: :list
 
   definstance functor(list) do
     def fmap(f, xs) do
@@ -28,14 +28,15 @@ defmodule Elixirdo.Instance.List do
     end
   end
 
-  definstance monad list do
+  definstance monad(list) do
     def bind(as, afb) do
       :lists.flatten(
         :lists.map(
           fn a ->
             afb.(a)
           end,
-        as)
+          as
+        )
       )
     end
   end

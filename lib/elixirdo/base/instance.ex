@@ -18,8 +18,7 @@ defmodule Elixirdo.Base.Instance do
       class_param: type_name,
       class_arguments: type_arguments,
       extends: extends
-    ] =
-      Keyword.take(class_attr, [:class, :class_module, :class_param, :class_arguments, :extends])
+    ] = Keyword.take(class_attr, [:class, :class_module, :class_param, :class_arguments, :extends])
 
     type_arguments = type_arguments || []
 
@@ -68,8 +67,7 @@ defmodule Elixirdo.Base.Instance do
     type_extends = Utils.get_delete_attribute(module, :type_extends)
     class_name = Utils.get_delete_attribute(module, :class_name)
 
-    [module: typeclass_module, functions: typeclass_functions] =
-      Module.get_attribute(module, class_name)
+    [module: typeclass_module, functions: typeclass_functions] = Module.get_attribute(module, class_name)
 
     type_fun = Keyword.get(Module.get_attribute(module, type_name), :type_fun)
     type_pattern = type_fun.(type_arguments)

@@ -1,5 +1,4 @@
 defmodule Elixirdo.Typeclass.Monad.MonadState do
-
   use Elixirdo.Base
   use Elixirdo.Notation.Do
   alias Elixirdo.Typeclass.Monad
@@ -7,7 +6,7 @@ defmodule Elixirdo.Typeclass.Monad.MonadState do
   defmacro __using__(_) do
     quote do
       alias Elixirdo.Typeclass.Monad.MonadState
-      import_typeclass MonadState.monad_state
+      import_typeclass MonadState.monad_state()
     end
   end
 

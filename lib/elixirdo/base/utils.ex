@@ -43,6 +43,7 @@ defmodule Elixirdo.Base.Utils do
 
   def export_attribute(module, name, value, fun_value) do
     Module.put_attribute(module, name, value)
+
     quote do
       def unquote(name)() do
         unquote(fun_value)
@@ -107,13 +108,12 @@ defmodule Elixirdo.Base.Utils do
 
   def parse_class_name({:., _, [module, class]}, caller) do
     module = Macro.expand(module, caller)
-    [class: class, class_module: module ]
+    [class: class, class_module: module]
   end
 
   def parse_class_name(class, _caller) when is_atom(class) do
     [class: class, class_module: nil]
   end
-
 
   def parse_def({:::, _, [function_defs, function_returns]}, with_block) do
     def_opts = parse_function_def(function_defs, with_block)
@@ -123,6 +123,7 @@ defmodule Elixirdo.Base.Utils do
 
   def parse_function_def({name, _, params}, with_block) do
     new_params = merge_argumentlists(params)
+
     results =
       if with_block do
         parse_params_with_type(new_params)

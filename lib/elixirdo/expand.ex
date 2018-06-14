@@ -7,7 +7,7 @@ defmodule Elixirdo.Expand do
 
   defmacro expand(do: block) do
     expanded_block = block |> Macro.expand(__CALLER__)
-    expanded_block |> Macro.to_string |> add_tab() |> append_env(__CALLER__) |> IO.puts
+    expanded_block |> Macro.to_string() |> add_tab() |> append_env(__CALLER__) |> IO.puts()
     expanded_block
   end
 

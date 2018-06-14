@@ -25,6 +25,8 @@ defmodule Elixirdo.Base.Utils do
     nil
   end
 
+
+
   def update_attribute(module, key, fun) do
     attribute = Module.get_attribute(module, key)
     attribute = fun.(attribute)
@@ -69,8 +71,11 @@ defmodule Elixirdo.Base.Utils do
     end
   end
 
-  defmacro set_module_attribute(module, key, value) do
-    Module.put_attribute(module, key, value)
+  def import_attribute_module(caller, {{:., _, [from_module, attribute]}, _, _}) do
+    module = caller.module
+    from_module = Macro.expand(from_module, caller)
+    import_attribute(module, from_module, attribute)
+    nil
   end
 
   def var_fn(module, gen_name) when is_function(gen_name) do

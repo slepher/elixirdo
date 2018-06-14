@@ -53,11 +53,8 @@ defmodule Elixirdo.Base.Type do
     end
   end
 
-  defmacro import_type({{:., _, [from_module, type]}, _, _}) do
-    module = __CALLER__.module
-    from_module = Macro.expand(from_module, __CALLER__)
-    Utils.import_attribute(module, from_module, type)
-    nil
+  defmacro import_type(type) do
+    Utils.import_attribute_module(__CALLER__, type)
   end
 
   def type_fun(type_name, args, typeclasses, quoted) do

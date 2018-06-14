@@ -61,11 +61,8 @@ defmodule Elixirdo.Base.Typeclass do
     do_defclass_def(params, opts, block, __CALLER__.module)
   end
 
-  defmacro import_typeclass({{:., _, [from_module, typeclass]}, _, _}) do
-    module = __CALLER__.module
-    from_module = Macro.expand(from_module, __CALLER__)
-    Utils.import_attribute(module, from_module, typeclass)
-    nil
+  defmacro import_typeclass(typeclass) do
+    Utils.import_attribute_module(__CALLER__, typeclass)
   end
 
   def do_defclass_def(params, _opts, block, module) do

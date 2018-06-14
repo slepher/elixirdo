@@ -6,7 +6,8 @@ defmodule MaybeTest do
 
   doctest Elixirdo.Instance.Maybe
 
-  @tag timeout: 1000
+  @moduletag timeout: 1000
+
   test "fmap" do
     f = fn a -> a * 2 end
     assert {:just, 2} == Functor.fmap(f, {:just, 1})

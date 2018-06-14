@@ -20,11 +20,13 @@ defmodule Elixirdo.Instance.List do
     end
 
     def ap(list_f, list_a) do
-      for f <- list_f do
-        for a <- list_a do
-          f.(a)
+      :lists.flatten(
+        for f <- list_f do
+          for a <- list_a do
+            f.(a)
+          end
         end
-      end
+      )
     end
   end
 
@@ -44,6 +46,10 @@ defmodule Elixirdo.Instance.List do
   definstance traversable(list) do
     def traverse(a_fb, [h | t]) do
       Applicative.lift_a2(fn hx, tx -> [hx | tx] end, a_fb.(h), traverse(a_fb, t))
+    end
+
+    def traverse(_a_fb, []) do
+      Applicative.pure([])
     end
   end
 end

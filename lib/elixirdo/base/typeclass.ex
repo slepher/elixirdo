@@ -5,9 +5,9 @@ defmodule Elixirdo.Base.Typeclass do
 
   defmacro __using__(_) do
     quote do
-      alias Elixirdo.Base.TYpeclass
+      alias Elixirdo.Base.Typeclass
 
-      import Elixirdo.Base.Typeclass,
+      import Typeclass,
         only: [
           defclass: 2,
           __defclass_def: 1,

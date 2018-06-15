@@ -27,7 +27,7 @@ defmodule Elixirdo.Base.Type do
   end
 
   def do_deftype(module, {:::, ctx1, [{name, ctx2, args}, type_defs]}, opts) do
-    {type_defs, typeclasses} = extract_typeclass(module, args, type_defs)
+    {type_defs, typeclasses} = extract_typeclass(args, type_defs)
     spec = {:::, ctx1, [{name, ctx2, args}, type_defs]}
     as = Keyword.get(opts, :as, name)
     exported = Keyword.get(opts, :export, true)
@@ -103,18 +103,15 @@ defmodule Elixirdo.Base.Type do
     end
   end
 
-  def extract_typeclass(module, args, type_defs) do
-    arg_names = args |> Enum.map(fn {var, _ctx, _} -> var end)
-
+  def extract_typeclass(args, type_defs) do
+    arg_map = args |> List.foldl(%{}, fn {var, _ctx, _} = arg, acc -> Map.put(acc, var, arg) end)
     Macro.traverse(
       type_defs,
       [],
       fn
-        {type, _ctx, arguments} = ast, acc when is_list(arguments) ->
-          case Enum.member?(arg_names, type) do
-            true ->
-              type_var = Macro.var(type, module)
-
+        {type, _ctx, arguments} = ast, acc when is_list(arguments) and is_atom(type) ->
+          case Map.fetch(arg_map, type) do
+            {:ok, type_var} ->
               ast =
                 quote do
                   Elixirdo.Base.Typeclass.class(unquote(type_var), unquote(arguments))
@@ -122,7 +119,7 @@ defmodule Elixirdo.Base.Type do
 
               {ast, [type | acc]}
 
-            false ->
+            :error ->
               {ast, acc}
           end
 
@@ -162,7 +159,7 @@ defmodule Elixirdo.Base.Type do
               acc
 
             {:ok, type} ->
-              acc = [{module, name, type} | acc]
+              acc = [{name, type} | acc]
               acc
           end
         end,
@@ -222,19 +219,19 @@ defmodule Elixirdo.Base.Type do
 
   def types_to_clauses(expanded_types) do
     expanded_types
-    |> Enum.map(fn {module, name, type} ->
-      to_clauses(module, name, type)
+    |> Enum.map(fn {name, type} ->
+      to_clauses(name, type)
     end)
     |> :lists.flatten()
   end
 
-  def to_clauses(module, type_name, type) do
+  def to_clauses(type_name, type) do
     clauses = :type_formal_trans.to_clauses(type)
 
     clauses
     |> Enum.map(fn {type_var, type_guards} ->
-      var = format_var(module, type_var)
-      guards = format_guards(module, type_guards)
+      var = format_var(type_var)
+      guards = format_guards(type_guards)
 
       if guards do
         quote do
@@ -252,29 +249,29 @@ defmodule Elixirdo.Base.Type do
     end)
   end
 
-  def format_var(module, {:var, 0}) do
-    Macro.var(:_, module)
+  def format_var({:var, 0}) do
+    Macro.var(:_, nil)
   end
 
-  def format_var(module, {:var, n}) do
-    var(module, n, "var")
+  def format_var({:var, n}) do
+    var(n, "var")
   end
 
-  def format_var(module, {:tuple, tuples}) do
-    formatted_tuples = tuples |> Enum.map(fn tuple -> format_var(module, tuple) end)
+  def format_var({:tuple, tuples}) do
+    formatted_tuples = tuples |> Enum.map(fn tuple -> format_var(tuple) end)
 
     quote do
       {unquote_splicing(formatted_tuples)}
     end
   end
 
-  def format_var(module, {:map, pairs}) do
+  def format_var({:map, pairs}) do
     {struct_module, pairs} = Keyword.pop_first(pairs, :__struct__)
 
     pairs =
       pairs
       |> Enum.map(fn {key, value} ->
-        {format_var(module, key), format_var(module, value)}
+        {format_var(key), format_var(value)}
       end)
 
     if struct_module do
@@ -288,17 +285,17 @@ defmodule Elixirdo.Base.Type do
     end
   end
 
-  def format_var(_module, var) when is_atom(var) do
+  def format_var(var) when is_atom(var) do
     var
   end
 
-  def format_guards(_module, []) do
+  def format_guards([]) do
     nil
   end
 
-  def format_guards(module, [guard | guards]) do
-    formatted_guard = format_guard(module, guard)
-    formatted_guards = format_guards(module, guards)
+  def format_guards([guard | guards]) do
+    formatted_guard = format_guard(guard)
+    formatted_guards = format_guards(guards)
 
     if formatted_guards do
       quote do
@@ -309,17 +306,17 @@ defmodule Elixirdo.Base.Type do
     end
   end
 
-  def format_guard(module, {guard_function, n}) do
-    var_name = var(module, n, "var")
+  def format_guard({guard_function, n}) do
+    var_name = var(n, "var")
 
     quote do
       unquote(guard_function)(unquote(var_name))
     end
   end
 
-  def var(module, n, prefix) do
+  def var(n, prefix) do
     var_name = prefix <> "_" <> Integer.to_string(n)
-    Macro.var(String.to_atom(var_name), module)
+    Macro.var(String.to_atom(var_name), nil)
   end
 
   def format_errors(errors) do

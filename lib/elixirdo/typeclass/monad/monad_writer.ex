@@ -2,6 +2,14 @@ defmodule Elixirdo.Typeclass.Monad.MonadWriter do
   use Elixirdo.Base
   alias Elixirdo.Typeclass.Monad
 
+  defmacro __using__(_) do
+    quote do
+      alias Elixirdo.Typeclass.Monad.MonadWriter
+      import_typeclass MonadWriter.monad_writer()
+    end
+  end
+
+
   defclass monad_writer(m, m: monad) do
     def writer({a, w}) :: m
 

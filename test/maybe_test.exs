@@ -14,7 +14,6 @@ defmodule MaybeTest do
     assert :nothing == Functor.fmap(f, :nothing)
   end
 
-  @tag timeout: 1000
   test "ap" do
     mf = {:just, fn a -> a * 2 end}
     ma = Applicative.pure(1)
@@ -22,7 +21,6 @@ defmodule MaybeTest do
     assert mb == Applicative.ap(mf, ma)
   end
 
-  @tag timeout: 1000
   test "lift_a2" do
     f = fn a, b -> a + b end
     ma = {:just, 3}
@@ -31,7 +29,6 @@ defmodule MaybeTest do
     assert mc == Applicative.lift_a2(f, ma, mb)
   end
 
-  @tag timeout: 1000
   test "lift_a3" do
     f = fn a, b, c -> a + b + c end
     ma = {:just, 3}

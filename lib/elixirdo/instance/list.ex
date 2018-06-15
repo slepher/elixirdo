@@ -3,8 +3,8 @@ defmodule Elixirdo.Instance.List do
   use Elixirdo.Expand
 
   use Elixirdo.Typeclass.Monad
-
-  import_typeclass Elixirdo.Typeclass.Traversable.traversable()
+  use Elixirdo.Typeclass.Monoid
+  use Elixirdo.Typeclass.Traversable
 
   deftype anonymous(a) :: list(a), as: :list
 
@@ -51,5 +51,16 @@ defmodule Elixirdo.Instance.List do
     def traverse(_a_fb, []) do
       Applicative.pure([])
     end
+  end
+
+  definstance monoid(list) do
+    def empty() do
+      []
+    end
+
+    def append(list_a, list_b) do
+      list_a ++ list_b
+    end
+
   end
 end

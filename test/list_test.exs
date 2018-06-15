@@ -10,50 +10,39 @@ defmodule ListTest do
   test "fmap" do
     list_a = [1, 2, 3]
     list_b = [2, 3, 4]
-
     list_c = Functor.fmap(&(&1 + 1), list_a)
-
     assert list_b == list_c
   end
 
   test "pure" do
-
     list_a = [1]
-
     list_b = Applicative.pure(1, :list)
-
     assert list_a == list_b
   end
 
   test "ap" do
-
     list_a = [3, 8]
     list_b = [&(&1 + 1), &(&1 + 3)]
-
-    list_c = [4, 9 ,6, 11]
-
+    list_c = [4, 9, 6, 11]
     list_d = list_b |> Applicative.ap(list_a)
-
     assert list_c == list_d
   end
 
   test "return" do
     list_a = [1]
-
     list_b = Monad.return(1, :list)
-
     assert list_a == list_b
   end
 
   test "bind" do
     list_a = [3, 8]
-
     list_b = [4, 6, 9, 11]
 
-    list_c = monad :list do
-      a <- list_a
-      [a + 1, a + 3]
-    end
+    list_c =
+      monad :list do
+        a <- list_a
+        [a + 1, a + 3]
+      end
 
     assert list_b == list_c
   end
@@ -76,6 +65,4 @@ defmodule ListTest do
     assert list_b == maybe_c
     assert list_e == maybe_f
   end
-
-
 end

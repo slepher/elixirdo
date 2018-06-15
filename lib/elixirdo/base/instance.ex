@@ -59,6 +59,28 @@ defmodule Elixirdo.Base.Instance do
     attrs
   end
 
+  defmacro __definstance_def({name, _, params}, do: block) do
+    arity = length(params)
+    module = __CALLER__.module
+
+    type_name = Module.get_attribute(module, :type_name)
+    type_arguments = Module.get_attribute(module, :type_arguments)
+    type_fun = Keyword.get(Module.get_attribute(module, type_name), :type_fun)
+    type_extends = Module.get_attribute(module, :type_extends)
+    type_arguments = ignore_non_typeclass(type_arguments, type_extends)
+    type_pattern = type_fun.(type_arguments)
+
+    Utils.update_attribute(module, :functions, fn functions ->
+      :ordsets.add_element({name, arity + 1}, functions)
+    end)
+
+    quote do
+      Kernel.def unquote(name)(unquote_splicing(params ++ [type_pattern])) do
+        unquote(block)
+      end
+    end
+  end
+
   defmacro after_definstance() do
     module = __CALLER__.module
     functions = Utils.get_delete_attribute(module, :functions)
@@ -74,18 +96,19 @@ defmodule Elixirdo.Base.Instance do
     type_arguments = inject_typed_arguments(type_arguments, type_extends)
     type_argument = type_fun.(type_arguments)
 
+    injected_functions =
+      inject_functions(
+        typeclass_module,
+        module,
+        type_name,
+        type_pattern,
+        type_argument,
+        typeclass_functions,
+        functions
+      )
+
     quote do
-      (unquote_splicing(
-         inject_functions(
-           typeclass_module,
-           module,
-           type_name,
-           type_pattern,
-           type_argument,
-           typeclass_functions,
-           functions
-         )
-       ))
+      (unquote_splicing(injected_functions))
     end
   end
 
@@ -158,27 +181,6 @@ defmodule Elixirdo.Base.Instance do
     end
   end
 
-  defmacro __definstance_def({name, _, params}, do: block) do
-    arity = length(params)
-    module = __CALLER__.module
-
-    type_name = Module.get_attribute(module, :type_name)
-    type_arguments = Module.get_attribute(module, :type_arguments)
-    type_fun = Keyword.get(Module.get_attribute(module, type_name), :type_fun)
-
-    type_pattern = type_fun.(type_arguments)
-
-    Utils.update_attribute(module, :functions, fn functions ->
-      :ordsets.add_element({name, arity + 1}, functions)
-    end)
-
-    quote do
-      Kernel.def unquote(name)(unquote_splicing(params ++ [type_pattern])) do
-        unquote(block)
-      end
-    end
-  end
-
   def extract_elixirdo_instances(paths) do
     instances =
       Utils.extract_matching_by_attribute(paths, 'Elixir.', fn module, attributes ->
@@ -212,16 +214,36 @@ defmodule Elixirdo.Base.Instance do
     end)
   end
 
-  defp inject_typed_arguments(type_arguments, type_extends) do
+  defp ignore_non_typeclass(type_arguments, type_extends) do
     type_arguments
     |> Enum.map(fn
       {argument_name, _, _} = arg ->
+        case Keyword.fetch(type_extends, argument_name) do
+          {:ok, :any} ->
+            Macro.var(:_, nil)
+
+          {:ok, _} ->
+            arg
+
+          :error ->
+            Macro.var(:_, nil)
+        end
+
+      arg ->
+        arg
+    end)
+  end
+
+  defp inject_typed_arguments(type_arguments, type_extends) do
+    type_arguments
+    |> Enum.map(fn
+      {argument_name, _, _} ->
         case Keyword.fetch(type_extends, argument_name) do
           {:ok, argument_value} ->
             argument_value
 
           :error ->
-            arg
+            :any
         end
 
       arg ->

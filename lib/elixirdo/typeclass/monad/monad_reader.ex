@@ -3,6 +3,13 @@ defmodule Elixirdo.Typeclass.Monad.MonadReader do
   use Elixirdo.Expand
   alias Elixirdo.Typeclass.Monad
 
+  defmacro __using__(_) do
+    quote do
+      alias Elixirdo.Typeclass.Monad.MonadReader
+      import_typeclass MonadReader.monad_reader()
+    end
+  end
+
   defclass monad_reader(m, m: monad) do
     def ask() :: m do
       reader(fn a -> a end, m)

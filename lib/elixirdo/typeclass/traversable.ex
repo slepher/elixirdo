@@ -4,6 +4,13 @@ defmodule Elixirdo.Typeclass.Traversable do
 
   alias Elixirdo.Typeclass.Functor
 
+  defmacro __using__(_) do
+    quote do
+      alias Elixirdo.Typeclass.Traversable
+      import_typeclass Traversable.traversable
+    end
+  end
+
   defclass traversable(t, t: foldable, t: functor) do
     def traverse(af_b: (a -> f(b)), ta: t(a)) :: f(t(b)), f: applicative do
       sequence_a(Functor.fmap(af_b, ta, t), t)

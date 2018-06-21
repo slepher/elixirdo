@@ -1,9 +1,10 @@
 defmodule Elixirdo.Base.Typeclass do
+
   alias Elixirdo.Base.Utils
 
   @type class(_class, _arguments) :: any()
 
-  import Utils, only: [with_opts_and_do: 2]
+  import Utils.Macro, only: [with_opts_and_do: 2]
 
   use Elixirdo.Expand
 
@@ -25,7 +26,7 @@ defmodule Elixirdo.Base.Typeclass do
   end
 
   defmacro defclass(name, do: block) do
-    class_attr = Elixirdo.Base.Utils.parse_class(name)
+    class_attr = Utils.Parser.parse_class(name)
 
     [class: class_name, class_param: class_param] = Keyword.take(class_attr, [:class, :class_param])
 
@@ -33,7 +34,7 @@ defmodule Elixirdo.Base.Typeclass do
     Module.put_attribute(module, :class_name, class_name)
     Module.put_attribute(module, :class_param, class_param)
     Module.put_attribute(module, :functions, [])
-    block = Elixirdo.Base.Utils.rename_macro(:def, :__defclass_def, block)
+    block = Elixirdo.Base.Utils.Macro.rename_macro(:def, :__defclass_def, block)
 
     quote do
       @elixirdo_typeclass unquote(class_name)
@@ -45,11 +46,11 @@ defmodule Elixirdo.Base.Typeclass do
   defmacro typeclass_macro(class_name) do
     module = __CALLER__.module
     functions = Module.get_attribute(module, :functions)
-    Elixirdo.Base.Utils.export_attribute(module, class_name, module: module, functions: functions)
+    Elixirdo.Base.Utils.Macro.export_attribute(module, class_name, module: module, functions: functions)
   end
 
   defmacro import_typeclass(typeclass) do
-    Utils.import_attribute_module(__CALLER__, typeclass)
+    Utils.Macro.import_attribute_module(__CALLER__, typeclass)
   end
 
   with_opts_and_do :__defclass_def, :do_defclass_def
@@ -57,15 +58,15 @@ defmodule Elixirdo.Base.Typeclass do
   def do_defclass_def(params, _opts, block, module) do
     def_spec =
       if block do
-        Utils.parse_def(params, true)
+        Utils.Parser.parse_def(params, true)
       else
-        Utils.parse_def(params, false)
+        Utils.Parser.parse_def(params, false)
       end
 
     class_name = Module.get_attribute(module, :class_name)
     class_param = Module.get_attribute(module, :class_param)
 
-    [name, param_types, _return_type] = Keyword.values(Keyword.take(def_spec, [:name, :type_params, :return_type]))
+    [name, _return_type, param_types] = Keyword.values(Keyword.take(def_spec, [:name, :return_type, :type_params]))
 
     arity = length(param_types)
     arities = :lists.seq(1, arity)
@@ -98,7 +99,7 @@ defmodule Elixirdo.Base.Typeclass do
 
     default_impl = default_impl(name, class_param, def_spec, block)
 
-    Utils.update_attribute(module, :functions, fn functions -> [{name, arity} | functions] end)
+    Utils.Macro.update_attribute(module, :functions, fn functions -> [{name, arity} | functions] end)
 
     quote do
       Kernel.def unquote(name)(unquote_splicing(out_params)) do
@@ -220,6 +221,10 @@ defmodule Elixirdo.Base.Typeclass do
     Macro.var(String.to_atom(var_name), module)
   end
 
+  def transvar(var_name, var_type, class_var_types, class_names) when is_atom(var_type) do
+
+  end
+
   def quote_assign(var, var_expression, false) do
     quote do
       unquote(var) = unquote(var_expression)
@@ -282,7 +287,7 @@ defmodule Elixirdo.Base.Typeclass do
 
   def extract_elixirdo_typeclasses(paths) do
     classes =
-      Utils.extract_matching_by_attribute(paths, 'Elixir.', fn _module, attributes ->
+      Utils.File.extract_matching_by_attribute(paths, 'Elixir.', fn _module, attributes ->
         case attributes[:elixirdo_typeclass] do
           nil ->
             nil

@@ -42,7 +42,7 @@ defmodule Elixirdo.Base.Type do
       type_attribute_in_attr = type_attributes ++ [type_fun: elixirdo_type_fun_in_attr]
       type_attribute_in_fun = type_attributes ++ [type_fun: elixirdo_type_fun_in_fun]
 
-      exported_attribute = Utils.export_attribute(module, as, type_attribute_in_attr, type_attribute_in_fun)
+      exported_attribute = Utils.Macro.export_attribute(module, as, type_attribute_in_attr, type_attribute_in_fun)
 
       quote do
         @type unquote(spec)
@@ -54,7 +54,7 @@ defmodule Elixirdo.Base.Type do
   end
 
   defmacro import_type(type) do
-    Utils.import_attribute_module(__CALLER__, type)
+    Utils.Macro.import_attribute_module(__CALLER__, type)
   end
 
   def type_fun(type_name, args, typeclasses, quoted) do
@@ -67,7 +67,7 @@ defmodule Elixirdo.Base.Type do
     typeclass_argument_offsets =
       args_offsets
       |> Enum.filter(fn n ->
-        type_arg_name = Utils.parse_type_param(:lists.nth(n, args))
+        type_arg_name = Utils.Parser.parse_type_param(:lists.nth(n, args))
         Enum.member?(typeclasses, type_arg_name)
       end)
 
@@ -136,7 +136,7 @@ defmodule Elixirdo.Base.Type do
     cache = :type_expansion.cache()
 
     types =
-      Utils.extract_matching_by_attribute(paths, 'Elixir.', fn module, attributes ->
+      Utils.File.extract_matching_by_attribute(paths, 'Elixir.', fn module, attributes ->
         case attributes[:elixirdo_type] do
           nil ->
             nil

@@ -1,5 +1,6 @@
 defmodule Elixirdo.Base.Instance do
   alias Elixirdo.Base.Utils
+
   use Elixirdo.Expand
 
   defmacro __using__(_) do
@@ -10,7 +11,7 @@ defmodule Elixirdo.Base.Instance do
   end
 
   defmacro definstance(expr, do: block) do
-    class_attr = Elixirdo.Base.Utils.parse_class(expr, __CALLER__)
+    class_attr = Elixirdo.Base.Utils.Parser.parse_class(expr, __CALLER__)
 
     [
       class: class_name,
@@ -22,7 +23,7 @@ defmodule Elixirdo.Base.Instance do
 
     type_arguments = type_arguments || []
 
-    extends = extends |> Enum.map(fn {k, v} -> {k, Utils.parse_type_param(v)} end)
+    extends = extends |> Enum.map(fn {k, v} -> {k, Utils.Parser.parse_type_param(v)} end)
 
     module = __CALLER__.module
     Module.put_attribute(module, :class_name, class_name)
@@ -30,7 +31,7 @@ defmodule Elixirdo.Base.Instance do
     Module.put_attribute(module, :type_arguments, type_arguments)
     Module.put_attribute(module, :type_extends, extends)
     Module.put_attribute(module, :functions, [])
-    block = Elixirdo.Base.Utils.rename_macro(:def, :__definstance_def, block)
+    block = Elixirdo.Base.Utils.Macro.rename_macro(:def, :__definstance_def, block)
 
     import_attrs(module, class_name, typeclass_module, __CALLER__.file, expr)
     import_attrs(module, type_name, nil, __CALLER__.file, expr)
@@ -44,7 +45,7 @@ defmodule Elixirdo.Base.Instance do
 
   def import_attrs(module, name, attr_module, file, expr) do
     if attr_module do
-      Utils.import_attribute(module, attr_module, name)
+      Utils.Macro.import_attribute(module, attr_module, name)
     end
 
     attrs = Module.get_attribute(module, name)
@@ -70,7 +71,7 @@ defmodule Elixirdo.Base.Instance do
     type_arguments = ignore_non_typeclass(type_arguments, type_extends)
     type_pattern = type_fun.(type_arguments)
 
-    Utils.update_attribute(module, :functions, fn functions ->
+    Utils.Macro.update_attribute(module, :functions, fn functions ->
       :ordsets.add_element({name, arity + 1}, functions)
     end)
 
@@ -83,11 +84,11 @@ defmodule Elixirdo.Base.Instance do
 
   defmacro after_definstance() do
     module = __CALLER__.module
-    functions = Utils.get_delete_attribute(module, :functions)
-    type_name = Utils.get_delete_attribute(module, :type_name)
-    type_arguments = Utils.get_delete_attribute(module, :type_arguments)
-    type_extends = Utils.get_delete_attribute(module, :type_extends)
-    class_name = Utils.get_delete_attribute(module, :class_name)
+    functions = Utils.Macro.get_delete_attribute(module, :functions)
+    type_name = Utils.Macro.get_delete_attribute(module, :type_name)
+    type_arguments = Utils.Macro.get_delete_attribute(module, :type_arguments)
+    type_extends = Utils.Macro.get_delete_attribute(module, :type_extends)
+    class_name = Utils.Macro.get_delete_attribute(module, :class_name)
 
     [module: typeclass_module, functions: typeclass_functions] = Module.get_attribute(module, class_name)
 
@@ -183,7 +184,7 @@ defmodule Elixirdo.Base.Instance do
 
   def extract_elixirdo_instances(paths) do
     instances =
-      Utils.extract_matching_by_attribute(paths, 'Elixir.', fn module, attributes ->
+      Utils.File.extract_matching_by_attribute(paths, 'Elixir.', fn module, attributes ->
         case attributes[:elixirdo_instance] do
           nil ->
             nil

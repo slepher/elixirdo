@@ -3,6 +3,10 @@ defmodule Elixirdo.Base.Typeclass do
 
   @type class(_class, _arguments) :: any()
 
+  import Utils, only: [with_opts_and_do: 2]
+
+  use Elixirdo.Expand
+
   defmacro __using__(_) do
     quote do
       alias Elixirdo.Base.Typeclass
@@ -44,26 +48,11 @@ defmodule Elixirdo.Base.Typeclass do
     Elixirdo.Base.Utils.export_attribute(module, class_name, module: module, functions: functions)
   end
 
-  defmacro __defclass_def(params) do
-    do_defclass_def(params, [], nil, __CALLER__.module)
-  end
-
-  defmacro __defclass_def(params, do: block) do
-    do_defclass_def(params, [], block, __CALLER__.module)
-  end
-
-  defmacro __defclass_def(params, opts) do
-    {block, new_opts} = Keyword.pop(opts, :do, nil)
-    do_defclass_def(params, new_opts, block, __CALLER__.module)
-  end
-
-  defmacro __defclass_def(params, opts, do: block) do
-    do_defclass_def(params, opts, block, __CALLER__.module)
-  end
-
   defmacro import_typeclass(typeclass) do
     Utils.import_attribute_module(__CALLER__, typeclass)
   end
+
+  with_opts_and_do :__defclass_def, :do_defclass_def
 
   def do_defclass_def(params, _opts, block, module) do
     def_spec =

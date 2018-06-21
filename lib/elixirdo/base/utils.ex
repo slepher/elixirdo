@@ -19,13 +19,42 @@ defmodule Elixirdo.Base.Utils do
     renamed_ast
   end
 
+  defmacro with_opts_and_do(name, rename) do
+    quote do
+      defmacro unquote(name)(params) do
+        unquote(rename)(params, [], nil, __CALLER__.module)
+      end
+
+      defmacro unquote(name)(params, opts) do
+        {opts, block} = Elixirdo.Base.Utils.split_block(opts, nil)
+        unquote(rename)(params, opts, block, __CALLER__.module)
+      end
+
+      defmacro unquote(name)(params, opts, do_block) do
+        {opts, block} = Elixirdo.Base.Utils.split_block(opts, do_block)
+        unquote(rename)(params, opts, block, __CALLER__.module)
+      end
+    end
+  end
+
+  def split_block([do: block], nil) do
+    {[], block}
+  end
+
+  def split_block(opts, nil) do
+    {block, opts} = Keyword.pop(opts, :do, nil)
+    {opts, block}
+  end
+
+  def split_block(opts, do: block) do
+    {opts, block}
+  end
+
   defmacro set_attribute(key, value) do
     module = __CALLER__.module
     Module.put_attribute(module, key, value)
     nil
   end
-
-
 
   def update_attribute(module, key, fun) do
     attribute = Module.get_attribute(module, key)

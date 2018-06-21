@@ -10,7 +10,6 @@ defmodule Elixirdo.Typeclass.Monad.MonadCont do
     end
   end
 
-
   defclass monad_cont m do
     def callCC( ((a -> m(b)) -> m(a)) ) :: m(b)
   end

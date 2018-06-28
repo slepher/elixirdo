@@ -171,6 +171,12 @@ defmodule Elixirdo.Base.Typeclass do
   ##              param_return = param.(param_1, param_2, param_3)
   ##              Undetermined.run(param_return, class_name)
   ##         end
+
+
+  def trans_var(%Utils.Type{typeclasses: []}, _var_name, _class_var, _class_param, _module, false) do
+    nil
+  end
+
   def trans_var(
         %Utils.Type{type: %Utils.Type.Function{arguments: fn_param_types, return: fn_return_type}},
         var_name,
@@ -229,10 +235,6 @@ defmodule Elixirdo.Base.Typeclass do
       end
 
     quote_assign(var, var_expression, is_return_var)
-  end
-
-  def trans_var(_var_type, _var_name, _class_var, _class_param, _module, false) do
-    nil
   end
 
   def trans_var(_var_type, var_name, _class_var, _class_param, module, true) do

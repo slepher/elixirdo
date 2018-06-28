@@ -67,7 +67,7 @@ defmodule Elixirdo.Base.Type do
     typeclass_argument_offsets =
       args_offsets
       |> Enum.filter(fn n ->
-        type_arg_name = Utils.Parser.parse_type_param(:lists.nth(n, args))
+        type_arg_name = Utils.Parser.unwrap_term(:lists.nth(n, args))
         Enum.member?(typeclasses, type_arg_name)
       end)
 

@@ -23,7 +23,7 @@ defmodule Elixirdo.Base.Instance do
 
     type_arguments = type_arguments || []
 
-    extends = extends |> Enum.map(fn {k, v} -> {k, Utils.Parser.parse_type_param(v)} end)
+    extends = extends |> Enum.map(fn {k, v} -> {k, Utils.Parser.unwrap_term(v)} end)
 
     module = __CALLER__.module
     Module.put_attribute(module, :class_name, class_name)

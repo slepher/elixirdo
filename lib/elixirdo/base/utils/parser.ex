@@ -1,4 +1,6 @@
 defmodule Elixirdo.Base.Utils.Parser do
+  alias Elixirdo.Base.Utils.Type
+
 
   def parse_class(class) do
     parse_class(class, nil)
@@ -31,61 +33,69 @@ defmodule Elixirdo.Base.Utils.Parser do
     [class: class, class_module: nil]
   end
 
-  def parse_def({:::, _, [{name, _, params}, function_returns]}, with_block) do
-    results =
-      if with_block do
-        parse_params_with_type(params)
-      else
-        [type_params: parse_type_params(params)]
+  def parse_def({:::, _, [{name, _, arguments}, return]}, typeclasses, with_block) do
+    {argument_vars, arguments} = parse_arguments(arguments, with_block)
+
+    type_arguments = parse_types(arguments, typeclasses)
+    type_return = parse_type(return, typeclasses)
+    %{name: name, argument_vars: argument_vars, arguments: type_arguments, return: type_return}
+  end
+
+  def parse_arguments(arguments_with_type, true) do
+    arguments_with_type = merge_argumentlists(arguments_with_type)
+    new_arguments_with_type =
+    :lists.map(
+      fn
+        {k, v} -> {k, v}
+        k when is_atom(k) -> {k, nil}
+      end,
+      arguments_with_type
+    )
+    argument_vars = Keyword.keys(new_arguments_with_type)
+    arguments = Keyword.values(new_arguments_with_type)
+    {argument_vars, arguments}
+  end
+
+  def parse_arguments(arguments, false) do
+    {nil, arguments}
+  end
+
+  def parse_types(types, typeclasses) do
+    :lists.map(fn type -> parse_type(type, typeclasses) end, types)
+  end
+
+  def parse_type([{:->, ctx, [fn_params, fn_returns]}], typeclasses) do
+    parse_type({:->, ctx, [fn_params, fn_returns]}, typeclasses)
+  end
+
+  def parse_type({:->, _, [arguments, return]}, typeclasses) do
+    type_arguments = parse_types(arguments, typeclasses)
+    type_return = parse_type(return, typeclasses)
+    fn_typeclasses = Type.typeclasses([type_return|type_arguments])
+    %Type{type: %Type.Function{arguments: type_arguments, return: type_return}, typeclasses: fn_typeclasses, outside_typeclasses: []}
+  end
+
+  def parse_type({a, b}, typeclasses) do
+    parse_type({:{}, [], [a, b]}, typeclasses)
+  end
+
+  def parse_type({:{}, _, elements}, typeclasses) do
+    type_elements = parse_types(elements, typeclasses)
+    tuple_typeclasses = Type.typeclasses(type_elements)
+    tuple_outside_typeclasses = Type.outside_typeclasses(type_elements)
+
+    %Type{type: %Type.Tuple{elements: type_elements}, typeclasses: tuple_typeclasses, outside_typeclasses: tuple_outside_typeclasses}
+  end
+
+  def parse_type({name, _, _}, typeclasses) when is_atom(name) do
+    atom_typeclasses =
+      case :ordsets.is_element(name, typeclasses) do
+        true ->
+          :ordsets.from_list([name])
+        false ->
+          :ordsets.new()
       end
-
-    return_type = parse_type_param(function_returns)
-    [name: name, return_type: return_type] ++ results
-  end
-
-  def parse_params_with_type(params_with_type) do
-    params_with_type = merge_argumentlists(params_with_type)
-
-    new_params_with_type =
-      :lists.map(
-        fn
-          {k, v} -> {k, v}
-          k when is_atom(k) -> {k, nil}
-        end,
-        params_with_type
-      )
-
-    params = Keyword.keys(new_params_with_type)
-    type_params = Keyword.values(new_params_with_type)
-    [params: params, type_params: parse_type_params(type_params)]
-  end
-
-  def parse_type_params(type_params) do
-    :lists.map(&parse_type_param/1, type_params)
-  end
-
-  def parse_type_param({:->, _, [fn_params, fn_returns]}) do
-    {:->, parse_type_params(fn_params), parse_type_param(fn_returns)}
-  end
-
-  def parse_type_param([{:->, _, [fn_params, fn_returns]}]) do
-    {:->, parse_type_params(fn_params), parse_type_param(fn_returns)}
-  end
-
-  def parse_type_param({a, b}) do
-    {:{}, [parse_type_param(a), parse_type_param(b)]}
-  end
-
-  def parse_type_param({:{}, _, tuple_params}) do
-    {:{}, parse_type_params(tuple_params)}
-  end
-
-  def parse_type_param({name, _, _}) do
-    name
-  end
-
-  def parse_type_param(name) when is_atom(name) do
-    name
+    %Type{type: name, typeclasses: atom_typeclasses, outside_typeclasses: atom_typeclasses}
   end
 
   def parse_fn_params({:., _, [dot_left, dot_right]}) do
@@ -97,6 +107,10 @@ defmodule Elixirdo.Base.Utils.Parser do
   end
 
   def unwrap_term({term, _, _}) do
+    term
+  end
+
+  def unwrap_term(term) when is_atom(term) do
     term
   end
 

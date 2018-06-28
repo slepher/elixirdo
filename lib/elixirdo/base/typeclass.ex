@@ -1,5 +1,4 @@
 defmodule Elixirdo.Base.Typeclass do
-
   alias Elixirdo.Base.Utils
 
   @type class(_class, _arguments) :: any()
@@ -28,11 +27,14 @@ defmodule Elixirdo.Base.Typeclass do
   defmacro defclass(name, do: block) do
     class_attr = Utils.Parser.parse_class(name)
 
-    [class: class_name, class_param: class_param] = Keyword.take(class_attr, [:class, :class_param])
+    [class: class_name, class_param: class_param, extends: typeclass_keyword] = Keyword.take(class_attr, [:class, :class_param, :extends])
+    typeclasses = :ordsets.from_list([class_param | Keyword.keys(typeclass_keyword)])
 
     module = __CALLER__.module
     Module.put_attribute(module, :class_name, class_name)
     Module.put_attribute(module, :class_param, class_param)
+    Module.put_attribute(module, :typeclasses, typeclasses)
+    Module.put_attribute(module, :typeclass_keyword, typeclass_keyword)
     Module.put_attribute(module, :functions, [])
     block = Elixirdo.Base.Utils.Macro.rename_macro(:def, :__defclass_def, block)
 
@@ -53,24 +55,22 @@ defmodule Elixirdo.Base.Typeclass do
     Utils.Macro.import_attribute_module(__CALLER__, typeclass)
   end
 
-  with_opts_and_do :__defclass_def, :do_defclass_def
+  with_opts_and_do(:__defclass_def, :do_defclass_def)
 
-  def do_defclass_def(params, _opts, block, module) do
-    def_spec =
-      if block do
-        Utils.Parser.parse_def(params, true)
-      else
-        Utils.Parser.parse_def(params, false)
-      end
-
+  def do_defclass_def(def_arguments, _opts, block, module) do
     class_name = Module.get_attribute(module, :class_name)
     class_param = Module.get_attribute(module, :class_param)
+    typeclasses = Module.get_attribute(module, :typeclasses)
 
-    [name, _return_type, param_types] = Keyword.values(Keyword.take(def_spec, [:name, :return_type, :type_params]))
+    def_spec = Utils.Parser.parse_def(def_arguments, typeclasses, block != nil)
 
-    arity = length(param_types)
+    %{name: name, arguments: arguments} = def_spec
+
+    #extratable_offsets = extratable_offsets(arguments)
+
+    arity = length(arguments)
     arities = :lists.seq(1, arity)
-    u_arities = match_u_arities(class_param, param_types, arity)
+    u_arities = match_u_arities(class_param, arguments, arity)
 
     param_names = :lists.map(fn n -> "var_" <> Integer.to_string(n) end, arities)
     params = :lists.map(fn param -> Macro.var(String.to_atom(param), module) end, param_names)
@@ -108,7 +108,7 @@ defmodule Elixirdo.Base.Typeclass do
             unquote_splicing(
               trans_vars(
                 rest_arities,
-                param_types,
+                arguments,
                 param_names,
                 quote(do: type),
                 class_param,
@@ -127,6 +127,24 @@ defmodule Elixirdo.Base.Typeclass do
 
       unquote_splicing(default_impl)
     end
+  end
+
+  def extratable_offsets(arguments) do
+    :lists.foldl(
+      fn n, acc ->
+        %Utils.Type{outside_typeclasses: outside_typeclasses} = :lists.nth(n, arguments)
+
+        case outside_typeclasses do
+          [] ->
+            acc
+
+          _ ->
+            [n | acc]
+        end
+      end,
+      [],
+      :lists.reverse(Enum.to_list(1..length(arguments)))
+    )
   end
 
   def trans_vars(arities, param_types, param_names, class_name, class_param, module) do
@@ -154,7 +172,7 @@ defmodule Elixirdo.Base.Typeclass do
   ##              Undetermined.run(param_return, class_name)
   ##         end
   def trans_var(
-        {:->, fn_param_types, fn_return_type},
+        %Utils.Type{type: %Utils.Type.Function{arguments: fn_param_types, return: fn_return_type}},
         var_name,
         class_var,
         class_param,
@@ -202,7 +220,7 @@ defmodule Elixirdo.Base.Typeclass do
     quote_assign(var, var_expression, is_return_var)
   end
 
-  def trans_var(class_param, var_name, class_var, class_param, module, is_return_var) do
+  def trans_var(%Utils.Type{type: class_param}, var_name, class_var, class_param, module, is_return_var) do
     var = Macro.var(String.to_atom(var_name), module)
 
     var_expression =
@@ -221,8 +239,43 @@ defmodule Elixirdo.Base.Typeclass do
     Macro.var(String.to_atom(var_name), module)
   end
 
-  def transvar(var_name, var_type, class_var_types, class_names) when is_atom(var_type) do
+  def lens_attributes(type_var) do
+    lens_attributes(type_var, [], [])
+  end
 
+  def lens_attributes(%Utils.Type{typeclasses: []}, _attributes, acc) do
+    acc
+  end
+
+  def lens_attributes(%Utils.Type{type: type_var}, attributes, acc) when is_atom(type_var) do
+    [{type_var, attributes} | acc]
+  end
+
+  def lens_attributes(%Utils.Type{type: %Utils.Type.Function{} = type_var}, attributes, acc) do
+    [{type_var, attributes} | acc]
+  end
+
+  def lens_attributes(%Utils.Type{type: %Utils.Type.Tuple{elements: element_type_vars}}, attributes, acc) do
+    List.foldl(
+      Enum.to_list(1..length(element_type_vars)),
+      acc,
+      fn n, acc1 ->
+        attributes = [{:tuple, n} | attributes]
+        element_type_var = :lists.nth(n, element_type_vars)
+        lens_attributes(element_type_var, attributes, acc1)
+      end
+    )
+  end
+
+  def lens_attributes(%Utils.Type{type: %Utils.Type.Map{map_pairs: map_type_vars}}, attributes, acc) do
+    List.foldl(
+      map_type_vars,
+      acc,
+      fn {key, value_type_var}, acc1 ->
+        attributes = [{:map, key} | attributes]
+        lens_attributes(value_type_var, attributes, acc1)
+      end
+    )
   end
 
   def quote_assign(var, var_expression, false) do
@@ -237,7 +290,7 @@ defmodule Elixirdo.Base.Typeclass do
 
   def default_impl(name, class_param, def_spec, block) do
     if block do
-      params = Keyword.get(def_spec, :params)
+      params = Map.get(def_spec, :argument_vars)
       params = :lists.map(fn param -> Macro.var(param, nil) end, params ++ [class_param])
       name = String.to_atom("__default__" <> Atom.to_string(name))
 
@@ -277,7 +330,7 @@ defmodule Elixirdo.Base.Typeclass do
     )
   end
 
-  def match_class_param(type_param, type_param) do
+  def match_class_param(%Utils.Type{type: type_param}, type_param) do
     true
   end
 

@@ -79,6 +79,28 @@ defmodule Elixirdo.Base.Undetermined do
     f.(map_type(values, type), type)
   end
 
+  def guess_type(as, type_or_typeclass) do
+    case Generated.is_typeclass(type_or_typeclass) do
+      true ->
+        guess_type(as)
+
+      false ->
+        type_or_typeclass
+    end
+  end
+
+  defp guess_type([%Undetermined{} | t]) do
+    guess_type(t)
+  end
+
+  defp guess_type([h | _]) do
+    Generated.type(h)
+  end
+
+  defp guess_type([]) do
+    nil
+  end
+
   defp map_type(values, type) do
     Enum.map(values, fn value -> run(value, type) end)
   end

@@ -72,7 +72,7 @@ defmodule Elixirdo.Base.Utils.Parser do
     type_arguments = parse_types(arguments, typeclasses)
     type_return = parse_type(return, typeclasses)
     fn_typeclasses = Type.typeclasses([type_return|type_arguments])
-    %Type{type: %Type.Function{arguments: type_arguments, return: type_return}, typeclasses: fn_typeclasses, outside_typeclasses: []}
+    %Type{type: %Type.Function{arguments: type_arguments, return: type_return}, typeclasses: fn_typeclasses}
   end
 
   def parse_type({a, b}, typeclasses) do
@@ -82,9 +82,8 @@ defmodule Elixirdo.Base.Utils.Parser do
   def parse_type({:{}, _, elements}, typeclasses) do
     type_elements = parse_types(elements, typeclasses)
     tuple_typeclasses = Type.typeclasses(type_elements)
-    tuple_outside_typeclasses = Type.outside_typeclasses(type_elements)
 
-    %Type{type: %Type.Tuple{elements: type_elements}, typeclasses: tuple_typeclasses, outside_typeclasses: tuple_outside_typeclasses}
+    %Type{type: %Type.Tuple{elements: type_elements}, typeclasses: tuple_typeclasses}
   end
 
   def parse_type({name, _, _}, typeclasses) when is_atom(name) do
@@ -95,7 +94,7 @@ defmodule Elixirdo.Base.Utils.Parser do
         false ->
           :ordsets.new()
       end
-    %Type{type: name, typeclasses: atom_typeclasses, outside_typeclasses: atom_typeclasses}
+    %Type{type: name, typeclasses: atom_typeclasses}
   end
 
   def parse_fn_params({:., _, [dot_left, dot_right]}) do

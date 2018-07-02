@@ -44,6 +44,31 @@ defmodule Elixirdo.Base.Utils.Macro do
     {opts, block}
   end
 
+  def gen_vars(offsets, prefix) do
+    offsets |> Enum.map(fn n -> n |> gen_var(prefix) end)
+  end
+
+  def gen_var(offset, prefix) do
+    gen_var(offset, prefix, nil)
+  end
+
+  def gen_var(offset, {prefix, _, _}, module) when is_atom(prefix) do
+    gen_var(offset, Atom.to_string(prefix), module)
+  end
+
+  def gen_var(offset, prefix, module) when is_atom(prefix) do
+    gen_var(offset, Atom.to_string(prefix), module)
+  end
+
+  def gen_var(offset, prefix, module) when is_integer(offset) do
+    gen_var(Integer.to_string(offset), prefix, module)
+  end
+
+  def gen_var(offset, prefix, module) do
+    Macro.var(String.to_atom(prefix <> "_" <> offset), module)
+  end
+
+
   defmacro set_attribute(key, value) do
     module = __CALLER__.module
     Module.put_attribute(module, key, value)

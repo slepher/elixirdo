@@ -66,50 +66,50 @@ defmodule Elixirdo.Base.Typeclass do
 
     %{name: name, arguments: arguments} = def_spec
 
-    #extratable_offsets = extratable_offsets(arguments)
-
     arity = length(arguments)
-    arities = :lists.seq(1, arity)
-    u_arities = match_u_arities(class_param, arguments, arity)
+    argument_offsets = :lists.seq(1, arity)
 
-    param_names = :lists.map(fn n -> "var_" <> Integer.to_string(n) end, arities)
-    params = :lists.map(fn param -> Macro.var(String.to_atom(param), module) end, param_names)
-    u_param_names = :lists.map(fn n -> "u_var_" <> Integer.to_string(n) end, u_arities)
-    u_params = :lists.map(fn param -> Macro.var(String.to_atom(param), module) end, u_param_names)
-    t_param_names = :lists.map(fn n -> "var_" <> Integer.to_string(n) end, u_arities)
-    t_params = :lists.map(fn param -> Macro.var(String.to_atom(param), module) end, t_param_names)
+    arguments_attributes =
+      arguments
+      |> Enum.map(fn argument ->
+        Utils.Lens.lens_of_type(argument)
+      end)
 
-    out_param_names =
-      :lists.map(
-        fn n ->
-          case :lists.member(n, u_arities) do
-            true ->
-              "u_var_" <> Integer.to_string(n)
+    typeclasses_attributes = arguments_attributes |> typeclasses_attributes()
 
-            false ->
-              "var_" <> Integer.to_string(n)
-          end
-        end,
-        arities
-      )
+    first_arguments_offsets = first_typeclass_offsets(typeclasses_attributes)
+    rest_arguments_offsets = argument_offsets -- first_arguments_offsets
 
-    out_params = :lists.map(fn param -> Macro.var(String.to_atom(param), module) end, out_param_names) ++ [quote(do: u_type \\ unquote(class_name))]
+    def_arguments = Utils.Macro.gen_vars(argument_offsets, "argument")
+    first_arguments_attributes = Utils.filter_by_offsets(first_arguments_offsets, typeclasses_attributes)
+    first_def_arguments = Utils.filter_by_offsets(first_arguments_offsets, def_arguments)
+    rest_def_arguments = def_arguments -- first_def_arguments
 
-    rest_arities = arities -- u_arities
+    # quote do
+    #   Utils.Lens.view_all_by_type_attributes(unquote(first_typeclasses_attributes), [unquote_splicing(first_def_arguments)])
+    # end |> Macro.to_string |> IO.puts
+
+    {attrs_lenses, rattrs_lenses, init} = rcompose_attributes(first_arguments_attributes, class_param)
+
+    def_arguments_with_type = def_arguments ++ [quote(do: argument_type \\ unquote(class_name))]
 
     default_impl = default_impl(name, class_param, def_spec, block)
 
     Utils.Macro.update_attribute(module, :functions, fn functions -> [{name, arity} | functions] end)
 
     quote do
-      Kernel.def unquote(name)(unquote_splicing(out_params)) do
+      Kernel.def unquote(name)(unquote_splicing(def_arguments_with_type)) do
+        lens = Elixirdo.Base.Utils.Lens.rcomposes_attrs(unquote(attrs_lenses), unquote(rattrs_lenses), unquote(init))
+        to_mapped = Elixirdo.Base.Utils.Lens.view(lens, {unquote_splicing(first_def_arguments)})
         Elixirdo.Base.Undetermined.map_list(
-          fn [unquote_splicing(t_params)], type ->
+          fn mapped, type ->
+            {unquote_splicing(first_def_arguments)} = Elixirdo.Base.Utils.Lens.set(lens, {unquote_splicing(first_def_arguments)}, mapped)
+
             unquote_splicing(
               trans_vars(
-                rest_arities,
+                rest_arguments_offsets,
                 arguments,
-                param_names,
+                def_arguments,
                 quote(do: type),
                 class_param,
                 module
@@ -118,10 +118,10 @@ defmodule Elixirdo.Base.Typeclass do
 
             type_name = Elixirdo.Base.Generated.type_name(type)
             module = Elixirdo.Base.Generated.module(type_name, unquote(class_name))
-            module.unquote(name)(unquote_splicing(params), type)
+            module.unquote(name)(unquote_splicing(def_arguments), type)
           end,
-          [unquote_splicing(u_params)],
-          u_type
+          to_mapped,
+          argument_type
         )
       end
 
@@ -129,12 +129,66 @@ defmodule Elixirdo.Base.Typeclass do
     end
   end
 
-  def extratable_offsets(arguments) do
+  def rcompose_attributes(first_typeclasses_attributes, typeclass) do
+    {lens_attributes, rlens_attributes, offset} =
+      :lists.foldl(
+        fn n, acc0 ->
+          typeclass_attributes = :lists.nth(n, first_typeclasses_attributes)
+          typeclass_attributes_map = Utils.kvs_to_map(typeclass_attributes)
+          attributes_list = Map.get(typeclass_attributes_map, typeclass, [])
+
+          :lists.foldl(
+            fn attributes, {accl, accr, incr} ->
+              incr = incr + 1
+              accl = [[{:tuple, n} | attributes] | accl]
+              accr = [[{:list, incr}] | accr]
+              {accl, accr, incr}
+            end,
+            acc0,
+            attributes_list
+          )
+        end,
+        {[], [], 0},
+        :lists.seq(1, length(first_typeclasses_attributes))
+      )
+
+    init = :lists.seq(1, offset) |> Enum.map(fn _ -> nil end)
+    {lens_attributes, rlens_attributes, init}
+  end
+
+  def u_arguments(first_typeclass_offsets, typeclasses_attributes, arguments) do
+    first_typeclass_offsets
+    |> Enum.map(fn n ->
+      argument = :lists.nth(n, arguments)
+      typeclass_attributes = :lists.nth(n, typeclasses_attributes)
+      {argument, typeclass_attributes}
+    end)
+  end
+
+  def typeclasses_attributes(arguments_attributes) do
+    arguments_attributes
+    |> Enum.map(fn attributes ->
+      attributes
+      |> Enum.filter(fn
+        {k, _v} when is_atom(k) ->
+          true
+
+        {_k, _v} ->
+          false
+      end)
+    end)
+  end
+
+  def first_typeclass_offsets([]) do
+    []
+  end
+
+  def first_typeclass_offsets(arguments_attributes) do
     :lists.foldl(
       fn n, acc ->
-        %Utils.Type{outside_typeclasses: outside_typeclasses} = :lists.nth(n, arguments)
+        attributes = :lists.nth(n, arguments_attributes)
 
-        case outside_typeclasses do
+        case attributes do
           [] ->
             acc
 
@@ -143,7 +197,7 @@ defmodule Elixirdo.Base.Typeclass do
         end
       end,
       [],
-      :lists.reverse(Enum.to_list(1..length(arguments)))
+      :lists.reverse(Enum.to_list(1..length(arguments_attributes)))
     )
   end
 
@@ -172,14 +226,13 @@ defmodule Elixirdo.Base.Typeclass do
   ##              Undetermined.run(param_return, class_name)
   ##         end
 
-
   def trans_var(%Utils.Type{typeclasses: []}, _var_name, _class_var, _class_param, _module, false) do
     nil
   end
 
   def trans_var(
         %Utils.Type{type: %Utils.Type.Function{arguments: fn_param_types, return: fn_return_type}},
-        var_name,
+        var,
         class_var,
         class_param,
         module,
@@ -187,21 +240,9 @@ defmodule Elixirdo.Base.Typeclass do
       ) do
     fn_param_arity = length(fn_param_types)
 
-    fn_param_names =
-      :lists.map(
-        fn n -> var_name <> "_" <> Integer.to_string(n) end,
-        :lists.seq(1, fn_param_arity)
-      )
+    fn_params = Utils.Macro.gen_vars(:lists.seq(1, fn_param_arity), var)
 
-    fn_params =
-      :lists.map(
-        fn fn_param_name -> Macro.var(String.to_atom(fn_param_name), module) end,
-        fn_param_names
-      )
-
-    fn_return_name = var_name <> "_return"
-    fn_return = Macro.var(String.to_atom(fn_return_name), module)
-    var = Macro.var(String.to_atom(var_name), module)
+    fn_return = Utils.Macro.gen_var("return", var)
 
     var_expression =
       quote do
@@ -210,7 +251,7 @@ defmodule Elixirdo.Base.Typeclass do
             trans_vars(
               :lists.seq(1, fn_param_arity),
               fn_param_types,
-              fn_param_names,
+              fn_params,
               class_var,
               class_param,
               module
@@ -219,15 +260,14 @@ defmodule Elixirdo.Base.Typeclass do
 
           unquote(fn_return) = unquote(var).(unquote_splicing(fn_params))
 
-          unquote(trans_var(fn_return_type, fn_return_name, class_var, class_param, module, true))
+          unquote(trans_var(fn_return_type, fn_return, class_var, class_param, module, true))
         end
       end
 
     quote_assign(var, var_expression, is_return_var)
   end
 
-  def trans_var(%Utils.Type{type: class_param}, var_name, class_var, class_param, module, is_return_var) do
-    var = Macro.var(String.to_atom(var_name), module)
+  def trans_var(%Utils.Type{type: class_param}, var, class_var, class_param, _module, is_return_var) do
 
     var_expression =
       quote do
@@ -237,47 +277,8 @@ defmodule Elixirdo.Base.Typeclass do
     quote_assign(var, var_expression, is_return_var)
   end
 
-  def trans_var(_var_type, var_name, _class_var, _class_param, module, true) do
-    Macro.var(String.to_atom(var_name), module)
-  end
-
-  def lens_attributes(type_var) do
-    lens_attributes(type_var, [], [])
-  end
-
-  def lens_attributes(%Utils.Type{typeclasses: []}, _attributes, acc) do
-    acc
-  end
-
-  def lens_attributes(%Utils.Type{type: type_var}, attributes, acc) when is_atom(type_var) do
-    [{type_var, attributes} | acc]
-  end
-
-  def lens_attributes(%Utils.Type{type: %Utils.Type.Function{} = type_var}, attributes, acc) do
-    [{type_var, attributes} | acc]
-  end
-
-  def lens_attributes(%Utils.Type{type: %Utils.Type.Tuple{elements: element_type_vars}}, attributes, acc) do
-    List.foldl(
-      Enum.to_list(1..length(element_type_vars)),
-      acc,
-      fn n, acc1 ->
-        attributes = [{:tuple, n} | attributes]
-        element_type_var = :lists.nth(n, element_type_vars)
-        lens_attributes(element_type_var, attributes, acc1)
-      end
-    )
-  end
-
-  def lens_attributes(%Utils.Type{type: %Utils.Type.Map{map_pairs: map_type_vars}}, attributes, acc) do
-    List.foldl(
-      map_type_vars,
-      acc,
-      fn {key, value_type_var}, acc1 ->
-        attributes = [{:map, key} | attributes]
-        lens_attributes(value_type_var, attributes, acc1)
-      end
-    )
+  def trans_var(_var_type, var, _class_var, _class_param, _module, true) do
+    var
   end
 
   def quote_assign(var, var_expression, false) do

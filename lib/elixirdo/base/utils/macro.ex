@@ -13,6 +13,14 @@ defmodule Elixirdo.Base.Utils.Macro do
     )
   end
 
+  def push(quote_one, block) do
+    [quote_one|normalize(block)]
+  end
+
+  def normalize({:__block__, _, inner}), do: inner
+  def normalize(single) when is_list(single), do: [single]
+  def normalize(plain), do: List.wrap(plain)
+
   defmacro with_opts_and_do(name, rename) do
     quote do
       defmacro unquote(name)(params) do

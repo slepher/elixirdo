@@ -83,7 +83,6 @@ defmodule Elixirdo.Base.Typeclass do
     def_arguments = Utils.Macro.gen_vars(argument_offsets, "argument")
     first_arguments_attributes = Utils.filter_by_offsets(first_arguments_offsets, typeclasses_attributes)
     first_def_arguments = Utils.filter_by_offsets(first_arguments_offsets, def_arguments)
-    rest_def_arguments = def_arguments -- first_def_arguments
 
     # quote do
     #   Utils.Lens.view_all_by_type_attributes(unquote(first_typeclasses_attributes), [unquote_splicing(first_def_arguments)])

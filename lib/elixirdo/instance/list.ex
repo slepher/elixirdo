@@ -32,18 +32,18 @@ defmodule Elixirdo.Instance.List do
   end
 
   definstance monoid(list) do
-    def empty() do
+    def mempty() do
       []
     end
 
-    def append(list_a, list_b) do
+    def mappend(list_a, list_b) do
       list_a ++ list_b
     end
   end
 
   definstance foldable(list) do
     def foldMap(afm, [h | t]) do
-      Monoid.append(afm.(h), foldMap(afm, t))
+      Monoid.mappend(afm.(h), foldMap(afm, t))
     end
   end
 

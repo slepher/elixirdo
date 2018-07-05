@@ -1,14 +1,29 @@
 defmodule Elixirdo.Instance.MonadTrans.Maybe do
   alias Elixirdo.Instance.MonadTrans.Maybe, as: MaybeT
-  alias Elixirdo.Instance.Maybe
+  use Elixirdo.Instance.Maybe
 
   use Elixirdo.Base
   use Elixirdo.Expand
   use Elixirdo.Typeclass.Monad
 
-  defstruct [:data]
+  defstruct [:value]
 
-  deftype maybe_t(m, a) :: %MaybeT{data: m(Maybe.maybe(a))}
+  deftype maybe_t(m, a) :: %MaybeT{value: m(Maybe.maybe(a))}
+
+  defmacro __using__(_) do
+    quote do
+      use Elixirdo.Instance.Maybe
+      alias Elixirdo.Instance.MonadTrans.Maybe, as: MaybeT
+    end
+  end
+
+  def new(m) do
+    %MaybeT{value: m}
+  end
+
+  def run(%MaybeT{value: m}) do
+    m
+  end
 
   definstance functor(maybe_t(m), m: functor) do
     def fmap(f, mta) do
@@ -21,57 +36,47 @@ defmodule Elixirdo.Instance.MonadTrans.Maybe do
 
   definstance applicative(maybe_t(m), m: monad) do
     def pure(a) do
-      new_maybe_t(Monad.return({:just, a}, m))
+      new(Monad.return(Maybe.return(a), m))
     end
 
-    def ap(mtf, mta) do
-      new_maybe_t(
-        Monad.bind(
-          run_maybe_t(mtf),
-          fn maybe_f ->
-            case maybe_f do
-              :nothing ->
-                Monad.return(:nothing)
+    def ap(maybe_t_f, maybe_t_a) do
+      new(
+        monad m do
+          maybe_f <- run(maybe_t_f)
 
-              {:just, f} ->
-                Functor.fmap(fn maybe_a -> Functor.fmap(f, maybe_a) end, run_maybe_t(mta), m)
-            end
-          end,
-          m
-        )
+          case maybe_f do
+            %Nothing{} ->
+              Monad.return(Nothing.new())
+
+            %Just{} = just_f ->
+              f = Just.run(just_f)
+              Functor.fmap(fn maybe_a -> Functor.fmap(f, maybe_a) end, run(maybe_t_a), m)
+          end
+        end
       )
     end
   end
 
   definstance monad(maybe_t(m), m: monad) do
-    def bind(mta, kmtb) do
-      new_maybe_t(
-        Monad.bind(
-          run_maybe_t(mta),
-          fn maybe_a ->
-            case maybe_a do
-              :nothing ->
-                Monad.return(:nothing, m)
+    def bind(maybe_t_a, afb) do
+      new(
+        monad m do
+          maybe_a <- run(maybe_t_a)
 
-              {:just, a} ->
-                run_maybe_t(kmtb.(a))
-            end
-          end,
-          m
-        )
+          case maybe_a do
+            %Nothing{} ->
+              Monad.return(Nothing.new(), m)
+
+            %Just{} = maybe_a ->
+              a = Just.run(maybe_a)
+              run(afb.(a))
+          end
+        end
       )
     end
   end
 
-  def map(f, mta) do
-    new_maybe_t(f.(run_maybe_t(mta)))
-  end
-
-  def new_maybe_t(data) do
-    %MaybeT{data: data}
-  end
-
-  def run_maybe_t(%MaybeT{data: data}) do
-    data
+  def map(f, maybe_t_a) do
+    new(f.(run(maybe_t_a)))
   end
 end

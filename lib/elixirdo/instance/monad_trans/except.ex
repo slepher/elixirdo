@@ -1,22 +1,29 @@
 defmodule Elixirdo.Instance.MonadTrans.Except do
-  alias Elixirdo.Instance.MonadTrans.Except
-  alias Elixirdo.Instance.Either
+  alias Elixirdo.Instance.MonadTrans.Except, as: ExceptT
+  use Elixirdo.Instance.Either
 
-  defstruct [:data]
+  defstruct [:value]
 
   use Elixirdo.Typeclass.Monad
   use Elixirdo.Base.Type
   use Elixirdo.Base.Instance
   use Elixirdo.Expand
 
-  deftype except_t(e, m, a) :: %Except{data: m(Either.either(e, a))}
+  deftype except_t(e, m, a) :: %ExceptT{value: m(Either.either(e, a))}
 
-  def new_except_t(m) do
-    %Except{data: m}
+  defmacro __using__(_) do
+    quote do
+      use Elixirdo.Instance.Either
+      alias Elixirdo.Instance.MonadTrans.Except, as: ExceptT
+    end
   end
 
-  def run_except_t(%Except{data: inner}) do
-    inner
+  def new(m) do
+    %ExceptT{value: m}
+  end
+
+  def run(%ExceptT{value: m}) do
+    m
   end
 
   definstance functor(except_t(e, m), m: functor) do
@@ -32,25 +39,31 @@ defmodule Elixirdo.Instance.MonadTrans.Except do
 
   definstance applicative(except_t(e, m), m: monad) do
     def pure(a) do
-      new_except_t(Monad.return(Either.pure(a), m))
+      new(Monad.return(Either.pure(a), m))
     end
 
     def ap(except_t_f, except_t_a) do
-      new_except_t(
+      new(
         monad m do
-          either_f <- run_except_t(except_t_f)
+          either_f <- run(except_t_f)
 
           case either_f do
-            {:left, _} ->
+            %Left{} ->
               Monad.return(either_f, m)
 
-            {:right, f} ->
+            %Right{} ->
+              f = Right.run(either_f)
+
               monad m do
-                either_a <- run_except_t(except_t_a)
+                either_a <- run(except_t_a)
 
                 case either_a do
-                  {:left, _} -> Monad.return(either_a, m)
-                  {:right, a} -> Monad.return({:right, f.(a)}, m)
+                  %Left{} ->
+                    Monad.return(either_a, m)
+
+                  %Right{} ->
+                    a = Right.run(either_a)
+                    Monad.return(Right.new(f.(a)), m)
                 end
               end
           end
@@ -61,16 +74,17 @@ defmodule Elixirdo.Instance.MonadTrans.Except do
 
   definstance monad(except_t(e, m), m: monad) do
     def bind(except_t_a, afb) do
-      new_except_t(
+      new(
         monad m do
-          either_a <- run_except_t(except_t_a)
+          either_a <- run(except_t_a)
 
           case either_a do
-            {:left, _} ->
+            %Left{} ->
               Monad.return(either_a, m)
 
-            {:right, a} ->
-              run_except_t(afb.(a))
+            %Right{} ->
+              a = Right.run(either_a)
+              run(afb.(a))
           end
         end
       )
@@ -78,6 +92,6 @@ defmodule Elixirdo.Instance.MonadTrans.Except do
   end
 
   def map(f, except_t_a) do
-    new_except_t(f.(run_except_t(except_t_a)))
+    new(f.(run(except_t_a)))
   end
 end

@@ -3,6 +3,8 @@ defmodule ListTest do
   use Elixirdo.Typeclass.Monad
   doctest Elixirdo.Instance.List
 
+  alias Elixirdo.Instance.Maybe
+
   alias Elixirdo.Typeclass.Traversable
 
   @moduletag timeout: 1000
@@ -51,17 +53,17 @@ defmodule ListTest do
     list_a = [3, 8]
     f = fn a -> Applicative.pure(a + 1, :maybe) end
     list_b = Traversable.traverse(f, list_a)
-    list_c = {:just, [4, 9]}
+    list_c =  Maybe.Just.new([4, 9])
     assert list_b == list_c
   end
 
   test "sequence_a" do
-    list_a = [{:just, 3}, {:just, 8}]
+    list_a = [Maybe.Just.new(3), Maybe.Just.new(8)]
     list_b = Traversable.sequence_a(list_a)
-    maybe_c = {:just, [3, 8]}
-    list_d = [{:just, 3}, :nothing]
+    maybe_c = Maybe.Just.new([3, 8])
+    list_d = [Maybe.Just.new(3), Maybe.Nothing.new()]
     list_e = Traversable.sequence_a(list_d)
-    maybe_f = :nothing
+    maybe_f = Maybe.Nothing.new()
     assert list_b == maybe_c
     assert list_e == maybe_f
   end

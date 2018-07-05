@@ -10,8 +10,8 @@ defmodule Elixirdo.Typeclass.Monoid do
   end
 
   defclass monoid m do
-    def empty() :: m
+    def mempty() :: m
 
-    def append(m, m) :: m
+    def mappend(m, m) :: m
   end
 end

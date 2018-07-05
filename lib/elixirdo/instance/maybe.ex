@@ -5,52 +5,83 @@ defmodule Elixirdo.Instance.Maybe do
 
   use Elixirdo.Typeclass.Monad
 
-  deftype maybe(a) :: {:just, a} | :nothing
+  defmacro __using__(_) do
+    quote do
+      alias Elixirdo.Instance.Maybe
+      alias Elixirdo.Instance.Maybe.Just
+      alias Elixirdo.Instance.Maybe.Nothing
+    end
+  end
 
-  definstance functor(maybe) do
-    def fmap(f, {:just, x}) do
-      {:just, f.(x)}
+  defmodule Just do
+    defstruct [:value]
+
+    def new(a) do
+      %Just{value: a}
     end
 
-    def fmap(_f, :nothing) do
-      :nothing
+    def run(%Just{value: a}) do
+      a
+    end
+  end
+
+  defmodule Nothing do
+    defstruct []
+
+    def new() do
+      %Nothing{}
+    end
+  end
+
+  alias Elixirdo.Instance.Maybe.Just
+  alias Elixirdo.Instance.Maybe.Nothing
+
+  deftype maybe(a) :: %Just{value: a} | %Nothing{}
+
+  definstance functor(maybe) do
+    def fmap(f, %Just{} = just_a) do
+      a = Just.run(just_a)
+      Just.new(f.(a))
+    end
+
+    def fmap(_f, %Nothing{}) do
+      Nothing.new()
     end
   end
 
   definstance applicative(maybe) do
     def pure(a) do
-      {:just, a}
+      Just.new(a)
     end
 
-    def ap(:nothing, _) do
-      :nothing
+    def ap(%Nothing{}, _) do
+      Nothing.new()
     end
 
-    def ap(_, :nothing) do
-      :nothing
+    def ap(_, %Nothing{}) do
+      Nothing.new()
     end
 
-    def ap({:just, f}, {:just, a}) do
-      {:just, f.(a)}
+    def ap(%Just{} = just_f, %Just{} = just_a) do
+      f = Just.run(just_f)
+      a = Just.run(just_a)
+      Just.new(f.(a))
     end
   end
 
   definstance monad(maybe) do
     def return(a) do
-      {:just, a}
+      Just.new(a)
     end
 
-    def bind({:just, x}, fun) do
-      fun.(x)
+    def bind(%Just{} = just_a, afb) do
+      a = Just.run(just_a)
+      afb.(a)
     end
 
-    def bind(:nothing, _fun) do
-      :nothing
+    def bind(%Nothing{}, _afb) do
+      Nothing.new()
     end
-  end
-
-  def unquote(:">>")(ma, mb) do
-    Kernel.apply(:monad, :"default_>>", [ma, mb, __MODULE__])
   end
 
   def fail(_e, _ \\ :maybe) do

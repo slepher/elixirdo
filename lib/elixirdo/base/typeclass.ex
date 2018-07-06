@@ -79,13 +79,13 @@ defmodule Elixirdo.Base.Typeclass do
         unquote(
           with_return(
             type_return,
-            fn return_lens_attrs_args, return_args, is_return ->
+            fn return_lens_attrs_args, return_args ->
               return_quote =
                 quote do
                   module.unquote(name)(unquote_splicing(args), type)
                 end
 
-              args_with_lens_attrs = List.zip([args ++ return_args, lens_attrs_args ++ return_lens_attrs_args])
+              args_with_lens_attrs = List.zip([args ++ :lists.flatten(return_args), lens_attrs_args ++ return_lens_attrs_args])
 
               first_args_with_lens_attrs = args_with_lens_attrs |> first_lens_attrs_args()
               rest_args_with_lens_attrs = args_with_lens_attrs |> rest_lens_attrs_args()
@@ -102,7 +102,7 @@ defmodule Elixirdo.Base.Typeclass do
 
                   type_name = Elixirdo.Base.Generated.type_name(type)
                   module = Elixirdo.Base.Generated.module(type_name, unquote(class_name))
-                  unquote_splicing(trans_return(return_quote, return_args, is_return))
+                  unquote_splicing(trans_return(return_quote, :lists.reverse(return_args)))
                 end
               end
             end
@@ -114,33 +114,46 @@ defmodule Elixirdo.Base.Typeclass do
     end
   end
 
-  def trans_return(expr, _args, false) do
+  def trans_return(expr, []) do
     [expr]
   end
 
-  def trans_return(expr, args, true) do
-    [quote do
-      return = unquote(expr)
-    end,
-    quote do
-      return.(unquote_splicing(args))
-    end]
+  def trans_return(expr, [args | t]) do
+    [
+      quote do
+        return = unquote(expr)
+      end
+      | trans_return(
+          quote do
+            return.(unquote_splicing(args))
+          end,
+          t
+        )
+    ]
   end
 
-  def with_return(%Utils.Type{type: %Utils.Type.Function{arguments: type_fn_args}}, callback) do
-    arity = length(type_fn_args)
-    args = Utils.Macro.gen_vars(:lists.seq(1, arity), "return")
-    lens_attrs_args = type_fn_args |> Enum.map(&Utils.Lens.lens_attrs_of_type/1)
+  def with_return(type, callback) do
+    with_return(type, "return", callback)
+  end
 
+  def with_return(%Utils.Type{type: %Utils.Type.Function{arguments: type_fn_args, return: type_return}}, return_var, callback) do
+    arity = length(type_fn_args)
+    args = Utils.Macro.gen_vars(:lists.seq(1, arity), return_var <> "_arg")
+    return_var = return_var <> "_return"
+    lens_attrs_args = type_fn_args |> Enum.map(&Utils.Lens.lens_attrs_of_type/1)
     quote do
       fn unquote_splicing(args) ->
-        unquote(callback.(lens_attrs_args, args, true))
+        unquote(
+          with_return(type_return, return_var, fn lens_attr_args_acc, args_acc ->
+            callback.(lens_attrs_args ++ lens_attr_args_acc, [args | args_acc])
+          end)
+        )
       end
     end
   end
 
-  def with_return(%Utils.Type{}, callback) do
-    callback.([], [], false)
+  def with_return(%Utils.Type{}, _return_var, callback) do
+    callback.([], [])
   end
 
   def unzip(zipped) do

@@ -2,14 +2,14 @@ defmodule Mix.Tasks.Compile.Elixirdo do
   use Mix.Task.Compiler
 
   @manifest "compile.elixirdo"
-  @manifest_vsn 1
+  #@manifest_vsn 1
 
-  def run(args) do
+  def run(_args) do
     config = Mix.Project.config()
     Mix.Task.run("compile")
-    {opts, _, _} = OptionParser.parse(args, switches: [force: :boolean, verbose: :boolean])
+    #{opts, _, _} = OptionParser.parse(args, switches: [force: :boolean, verbose: :boolean])
 
-    manifest = manifest()
+    #manifest = manifest()
     output = Mix.Project.compile_path(config)
 
     paths = consolidation_paths()

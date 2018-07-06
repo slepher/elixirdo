@@ -30,41 +30,41 @@ defmodule Elixirdo.Base.Utils.Lens do
     view_by_type_attributes(t, var, acc)
   end
 
-  def lens_of_type(type) do
-    lens_of_type(type, [], [])
+  def lens_attrs_of_type(type) do
+    lens_attrs_of_type(type, [], [])
   end
 
-  def lens_of_type(%Utils.Type{typeclasses: []}, _attributes, acc) do
+  def lens_attrs_of_type(%Utils.Type{typeclasses: []}, _attributes, acc) do
     acc
   end
 
-  def lens_of_type(%Utils.Type{type: type}, attributes, acc) when is_atom(type) do
+  def lens_attrs_of_type(%Utils.Type{type: type}, attributes, acc) when is_atom(type) do
     [{type, attributes} | acc]
   end
 
-  def lens_of_type(%Utils.Type{type: %Utils.Type.Function{} = type}, attributes, acc) do
+  def lens_attrs_of_type(%Utils.Type{type: %Utils.Type.Function{} = type}, attributes, acc) do
     [{type, attributes} | acc]
   end
 
-  def lens_of_type(%Utils.Type{type: %Utils.Type.Tuple{elements: element_types}}, attributes, acc) do
+  def lens_attrs_of_type(%Utils.Type{type: %Utils.Type.Tuple{elements: element_types}}, attributes, acc) do
     List.foldl(
       Enum.to_list(1..length(element_types)),
       acc,
       fn n, acc1 ->
         attributes = [{:tuple, n} | attributes]
         element_type = :lists.nth(n, element_types)
-        lens_of_type(element_type, attributes, acc1)
+        lens_attrs_of_type(element_type, attributes, acc1)
       end
     )
   end
 
-  def lens_of_type(%Utils.Type{type: %Utils.Type.Map{map_pairs: map_types}}, attributes, acc) do
+  def lens_attrs_of_type(%Utils.Type{type: %Utils.Type.Map{map_pairs: map_types}}, attributes, acc) do
     List.foldl(
       map_types,
       acc,
       fn {key, value_type}, acc1 ->
         attributes = [{:map, key} | attributes]
-        lens_of_type(value_type, attributes, acc1)
+        lens_attrs_of_type(value_type, attributes, acc1)
       end
     )
   end
@@ -123,7 +123,13 @@ defmodule Elixirdo.Base.Utils.Lens do
     getter.(s)
   end
 
-  def set({_, setter}, s, b) do
+  def set({_, setter}, b, s) do
+    setter.(s, b)
+  end
+
+  def over({getter, setter}, f, s) do
+    a = getter.(s)
+    b = f.(a)
     setter.(s, b)
   end
 
@@ -161,7 +167,7 @@ defmodule Elixirdo.Base.Utils.Lens do
           fn n, acc ->
             an = :lists.nth(n, as)
             rlens = :lists.nth(n, rlenses)
-            set(rlens, acc, an)
+            set(rlens, an, acc)
           end,
           init,
           :lists.seq(1, length(lenses))
@@ -178,7 +184,7 @@ defmodule Elixirdo.Base.Utils.Lens do
           fn n, acc ->
             bn = :lists.nth(n, bs)
             lens = :lists.nth(n, lenses)
-            set(lens, acc, bn)
+            set(lens, bn, acc)
           end,
           s,
           :lists.seq(1, length(lenses))

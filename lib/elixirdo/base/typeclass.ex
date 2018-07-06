@@ -64,99 +64,88 @@ defmodule Elixirdo.Base.Typeclass do
 
     def_spec = Utils.Parser.parse_def(def_arguments, typeclasses, block != nil)
 
-    %{name: name, arguments: arguments} = def_spec
-
-    arity = length(arguments)
-    argument_offsets = :lists.seq(1, arity)
-
-    arguments_attributes =
-      arguments
-      |> Enum.map(fn argument ->
-        Utils.Lens.lens_of_type(argument)
-      end)
-
-    typeclasses_attributes = arguments_attributes |> typeclasses_attributes()
-
-    first_arguments_offsets = first_typeclass_offsets(typeclasses_attributes)
-    rest_arguments_offsets = argument_offsets -- first_arguments_offsets
-
-    def_arguments = Utils.Macro.gen_vars(argument_offsets, "argument")
-
-    def_arguments_with_type = def_arguments ++ [quote(do: argument_type \\ unquote(class_name))]
-
-    default_impl = default_impl(name, class_param, def_spec, block)
-
+    %{name: name, arguments: type_args} = def_spec
+    arity = length(type_args)
     Utils.Macro.update_attribute(module, :functions, fn functions -> [{name, arity} | functions] end)
 
-    def_block =
-      mapping_arguments typeclasses_attributes, class_param do
-        quote do
-          unquote_splicing(
-            trans_vars(
-              rest_arguments_offsets,
-              arguments,
-              def_arguments,
-              quote(do: type),
-              class_param,
-              module
-            )
-          )
+    arg_offsets = :lists.seq(1, arity)
 
-          type_name = Elixirdo.Base.Generated.type_name(type)
-          module = Elixirdo.Base.Generated.module(type_name, unquote(class_name))
-          module.unquote(name)(unquote_splicing(def_arguments), type)
-        end
-      end
+    lens_attrs_args = type_args |> Enum.map(&Utils.Lens.lens_attrs_of_type/1)
+
+    first_lens_attrs_args = lens_attrs_args |> first_lens_attrs_args()
+    rest_lens_attrs_args = lens_attrs_args |> rest_lens_attrs_args()
+
+    args = Utils.Macro.gen_vars(arg_offsets, "argument")
+    args_with_lens_attrs = List.zip([args, rest_lens_attrs_args])
 
     quote do
-      Kernel.def unquote(name)(unquote_splicing(def_arguments_with_type)) do
-        unquote(def_block)
+      Kernel.def unquote(name)(unquote_splicing(args), arg_type \\ unquote(class_name)) do
+        unquote(
+          mapping_arguments first_lens_attrs_args, class_param do
+            quote do
+              unquote_splicing(
+                trans_vars(
+                  arg_offsets,
+                  type_args,
+                  args,
+                  quote(do: type),
+                  class_param,
+                  module
+                )
+              )
+
+              type_name = Elixirdo.Base.Generated.type_name(type)
+              module = Elixirdo.Base.Generated.module(type_name, unquote(class_name))
+              module.unquote(name)(unquote_splicing(args), type)
+            end
+          end
+        )
       end
 
-      unquote_splicing(default_impl)
+      unquote_splicing(default_impl(name, class_param, def_spec, block))
     end
   end
 
   def mapping_arguments(typeclasses_attributes, class_param, do: block) do
     arity = length(typeclasses_attributes)
 
-    argument_offsets = :lists.seq(1, arity)
+    arg_offsets = :lists.seq(1, arity)
 
-    first_arguments_offsets = first_typeclass_offsets(typeclasses_attributes)
+    first_arg_offsets = first_typeclass_offsets(typeclasses_attributes)
 
-    def_arguments = Utils.Macro.gen_vars(argument_offsets, "argument")
-    first_arguments_attributes = Utils.filter_by_offsets(first_arguments_offsets, typeclasses_attributes)
-    first_def_arguments = Utils.filter_by_offsets(first_arguments_offsets, def_arguments)
+    def_arguments = Utils.Macro.gen_vars(arg_offsets, "argument")
+    first_arguments_attributes = Utils.filter_by_offsets(first_arg_offsets, typeclasses_attributes)
+    first_def_arguments = Utils.filter_by_offsets(first_arg_offsets, def_arguments)
 
     {attrs_lenses, rattrs_lenses, init} = rcompose_attributes(first_arguments_attributes, class_param)
 
     case first_def_arguments do
       [] ->
         quote do
-          Elixirdo.Base.Undetermined.map_list(
-            fn [], type ->
+          Elixirdo.Base.Undetermined.new(
+            fn type ->
               unquote(block)
             end,
-            [],
-            argument_type
+            arg_type
           )
         end
+
       _ ->
+        unmap =
+          quote do
+            {unquote_splicing(first_def_arguments)} = Elixirdo.Base.Utils.Lens.set(lens, mapped, {unquote_splicing(first_def_arguments)})
+          end
+
         quote do
           lens = Elixirdo.Base.Utils.Lens.rcomposes_attrs(unquote(attrs_lenses), unquote(rattrs_lenses), unquote(init))
           to_mapped = Elixirdo.Base.Utils.Lens.view(lens, {unquote_splicing(first_def_arguments)})
 
           Elixirdo.Base.Undetermined.map_list(
             fn mapped, type ->
-              (unquote_splicing([
-                 quote do
-                   {unquote_splicing(first_def_arguments)} = Elixirdo.Base.Utils.Lens.set(lens, {unquote_splicing(first_def_arguments)}, mapped)
-                 end
-                 | Utils.Macro.normalize(block)
-               ]))
+              (unquote_splicing(Utils.Macro.push(unmap, block)))
             end,
             to_mapped,
-            argument_type
+            arg_type
           )
         end
     end
@@ -189,16 +178,30 @@ defmodule Elixirdo.Base.Typeclass do
     {lens_attributes, rlens_attributes, init}
   end
 
-  def typeclasses_attributes(arguments_attributes) do
-    arguments_attributes
-    |> Enum.map(fn attributes ->
-      attributes
+  def first_lens_attrs_args(lens_attrs_args) do
+    lens_attrs_args
+    |> Enum.map(fn lens_attrs ->
+      lens_attrs
       |> Enum.filter(fn
         {k, _v} when is_atom(k) ->
           true
 
         {_k, _v} ->
           false
+      end)
+    end)
+  end
+
+  def rest_lens_attrs_args(lens_attrs_args) do
+    lens_attrs_args
+    |> Enum.map(fn lens_attrs ->
+      lens_attrs
+      |> Enum.filter(fn
+        {k, _v} when is_atom(k) ->
+          false
+
+        {_k, _v} ->
+          true
       end)
     end)
   end

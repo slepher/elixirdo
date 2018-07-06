@@ -14,14 +14,7 @@ defmodule Elixirdo.Prism do
     #  dimap(SETA, either) :: p (Either t a) (Either t (f b)) -> p s -> f t
     #  right :: p a (f b) -> p (Either t a) (Either t (f b))
     #  final type is p a (f b) -> p s (f t)
-    Function.compose(
-      Profunctor.dimap(
-        s_either_ta,
-        Either.either(fn a -> Applicative.pure(a) end, fn fa ->
-          Functor.fmap(bt, fa)
-        end)
-      ),
-      fn c -> Choice.right(c) end
-    )
+    Profunctor.dimap(s_either_ta, Either.either(fn a -> Applicative.pure(a) end, fn fa -> Functor.fmap(bt, fa) end))
+    |> Function.compose(fn c -> Choice.right(c) end)
   end
 end

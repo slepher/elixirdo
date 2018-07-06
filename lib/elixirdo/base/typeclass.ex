@@ -84,13 +84,10 @@ defmodule Elixirdo.Base.Typeclass do
           mapping_arguments first_lens_attrs_args, class_param do
             quote do
               unquote_splicing(
-                trans_vars(
-                  arg_offsets,
-                  type_args,
-                  args,
+                trans_lens_attrs_vars(
+                  args_with_lens_attrs,
                   quote(do: type),
-                  class_param,
-                  module
+                  class_param
                 )
               )
 
@@ -228,21 +225,31 @@ defmodule Elixirdo.Base.Typeclass do
     )
   end
 
-  def trans_vars(arities, param_types, param_names, class_name, class_param, module) do
+  def trans_lens_attrs_vars(args_with_lens_attrs, class_name, class_param) do
     :lists.filter(
       fn ast -> ast != nil end,
       :lists.map(
-        fn n ->
-          param_type = :lists.nth(n, param_types)
-          param_name = :lists.nth(n, param_names)
-          trans_var(param_type, param_name, class_name, class_param, module, false)
+        fn {arg, lens_attrs_arg} ->
+          trans_lens_attrs_var(lens_attrs_arg, arg, class_name, class_param, false)
         end,
-        arities
+        args_with_lens_attrs
       )
     )
   end
 
-  ## trans variable with type like (a, f, (a -> f) -> f) to this form
+  def trans_lens_attrs_var([], _var_name, _class_var, _class_param, false) do
+    nil
+  end
+
+  def trans_lens_attrs_var([{type, []}], var, class_var, class_param, is_return) do
+    trans_var(type, var, class_var, class_param, is_return)
+  end
+
+  def trans_lens_attrs_var(_lens_attrs_var, _var, _class_var, _is_return) do
+    # TODO: add complex attributes with lens
+  end
+
+  ## trans variable with type like ((a, f, (a -> f)) -> f) to this form
   ## param = fn param_1, param_2, param_3 ->
   ##              param_2 = Undetermined.run(param2, class_name)
   ##              param_3 = fn param_3_1 ->
@@ -253,57 +260,56 @@ defmodule Elixirdo.Base.Typeclass do
   ##              Undetermined.run(param_return, class_name)
   ##         end
 
-  def trans_var(%Utils.Type{typeclasses: []}, _var_name, _class_var, _class_param, _module, false) do
-    nil
-  end
-
   def trans_var(
-        %Utils.Type{type: %Utils.Type.Function{arguments: fn_param_types, return: fn_return_type}},
+        %Utils.Type.Function{arguments: type_fn_args, return: fn_return_type},
         var,
         class_var,
         class_param,
-        module,
-        is_return_var
+        is_return
       ) do
-    fn_param_arity = length(fn_param_types)
+    fn_arity = length(type_fn_args)
 
-    fn_params = Utils.Macro.gen_vars(:lists.seq(1, fn_param_arity), var)
+    fn_args = Utils.Macro.gen_vars(:lists.seq(1, fn_arity), var)
+
+    lens_attrs_fn_args = type_fn_args |> Enum.map(&Utils.Lens.lens_attrs_of_type/1)
+
+    %Utils.Type{type: fn_return_type} = fn_return_type
+
+    fn_args_with_lens_attrs = List.zip([fn_args, lens_attrs_fn_args])
 
     fn_return = Utils.Macro.gen_var("return", var)
 
     var_expression =
       quote do
-        fn unquote_splicing(fn_params) ->
+        fn unquote_splicing(fn_args) ->
           unquote_splicing(
-            trans_vars(
-              :lists.seq(1, fn_param_arity),
-              fn_param_types,
-              fn_params,
+            trans_lens_attrs_vars(
+              fn_args_with_lens_attrs,
               class_var,
-              class_param,
-              module
+              class_param
             )
           )
 
-          unquote(fn_return) = unquote(var).(unquote_splicing(fn_params))
+          unquote(fn_return) = unquote(var).(unquote_splicing(fn_args))
 
-          unquote(trans_var(fn_return_type, fn_return, class_var, class_param, module, true))
+          unquote(trans_var(fn_return_type, fn_return, class_var, class_param, true))
         end
       end
 
-    quote_assign(var, var_expression, is_return_var)
+    quote_assign(var, var_expression, is_return)
   end
 
-  def trans_var(%Utils.Type{type: class_param}, var, class_var, class_param, _module, is_return_var) do
+  def trans_var(class_param, var, class_var, class_param, is_return) do
     var_expression =
       quote do
         Elixirdo.Base.Undetermined.run(unquote(var), unquote(class_var))
       end
 
-    quote_assign(var, var_expression, is_return_var)
+    quote_assign(var, var_expression, is_return)
   end
 
-  def trans_var(_var_type, var, _class_var, _class_param, _module, true) do
+  def trans_var(_var_type, var, _class_var, _class_param, true) do
+    # {_var_type, var, _class_var, _class_param} |> IO.inspect
     var
   end
 

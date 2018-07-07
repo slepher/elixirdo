@@ -141,6 +141,7 @@ defmodule Elixirdo.Base.Typeclass do
     args = Utils.Macro.gen_vars(:lists.seq(1, arity), return_var <> "_arg")
     return_var = return_var <> "_return"
     lens_attrs_args = type_fn_args |> Enum.map(&Utils.Lens.lens_attrs_of_type/1)
+
     quote do
       fn unquote_splicing(args) ->
         unquote(
@@ -170,11 +171,8 @@ defmodule Elixirdo.Base.Typeclass do
 
   def mapping_arguments(args_with_lens_attrs, class_param, do: block) do
     args_with_lens_attrs = args_with_lens_attrs |> Enum.filter(fn {_, attrs} -> attrs != [] end)
-    {args, lens_attrs_args} = unzip(args_with_lens_attrs)
 
-    {attrs_lenses, rattrs_lenses, init} = rcompose_attributes(lens_attrs_args, class_param)
-
-    case args do
+    case args_with_lens_attrs do
       [] ->
         quote do
           Elixirdo.Base.Undetermined.new(
@@ -186,22 +184,64 @@ defmodule Elixirdo.Base.Typeclass do
         end
 
       _ ->
-        unmap =
-          quote do
-            {unquote_splicing(args)} = Elixirdo.Base.Utils.Lens.set(lens, mapped, {unquote_splicing(args)})
-          end
+        {args, rest_args, rest_lens_attrs_args} =
+          args_with_lens_attrs
+          |> Enum.reduce(
+            {[], [], []},
+            fn
+              {arg, [{^class_param, []}]}, {args_acc, rest_args_acc, rest_lens_attr_args_acc} ->
+                {[arg | args_acc], rest_args_acc, rest_lens_attr_args_acc}
 
-        quote do
-          lens = Elixirdo.Base.Utils.Lens.rcomposes_attrs(unquote(attrs_lenses), unquote(rattrs_lenses), unquote(init))
-          to_mapped = Elixirdo.Base.Utils.Lens.view(lens, {unquote_splicing(args)})
-
-          Elixirdo.Base.Undetermined.map_list(
-            fn mapped, type ->
-              (unquote_splicing(Utils.Macro.push(unmap, block)))
-            end,
-            to_mapped,
-            arg_type
+              {arg, lens_attr_arg}, {args_acc, rest_args_acc, rest_lens_attr_args_acc} ->
+                {args_acc, [arg | rest_args_acc], [lens_attr_arg | rest_lens_attr_args_acc]}
+            end
           )
+
+        case rest_args do
+          [] ->
+            quote do
+              Elixirdo.Base.Undetermined.map_list(
+                fn [unquote_splicing(args)], type ->
+                  unquote(block)
+                end,
+                [unquote_splicing(args)],
+                arg_type
+              )
+            end
+
+          _ ->
+            {attrs_lenses, rattrs_lenses, init} = rcompose_attributes(rest_lens_attrs_args, class_param)
+
+            unmap_quote =
+              quote do
+                {unquote_splicing(rest_args)} = Elixirdo.Base.Utils.Lens.set(lens, mapped, {unquote_splicing(rest_args)})
+              end
+
+            mapped_quote =
+              case args do
+                [] ->
+                  quote do
+                    mapped
+                  end
+
+                _ ->
+                  quote do
+                    [unquote_splicing(args) | mapped]
+                  end
+              end
+
+            quote do
+              lens = Elixirdo.Base.Utils.Lens.rcomposes_attrs(unquote(attrs_lenses), unquote(rattrs_lenses), unquote(init))
+              mapped = Elixirdo.Base.Utils.Lens.view(lens, {unquote_splicing(rest_args)})
+
+              Elixirdo.Base.Undetermined.map_list(
+                fn unquote(mapped_quote), type ->
+                  (unquote_splicing(Utils.Macro.push(unmap_quote, block)))
+                end,
+                unquote(mapped_quote),
+                arg_type
+              )
+            end
         end
     end
   end
@@ -307,6 +347,7 @@ defmodule Elixirdo.Base.Typeclass do
 
   def trans_lens_attrs_var(_lens_attrs_var, _var, _class_var, _is_return) do
     # TODO: add complex attributes with lens
+    nil
   end
 
   ## trans variable with type like ((a, f, (a -> f)) -> f) to this form
@@ -369,7 +410,6 @@ defmodule Elixirdo.Base.Typeclass do
   end
 
   def trans_var(_var_type, var, _class_var, _class_param, true) do
-    # {_var_type, var, _class_var, _class_param} |> IO.inspect
     var
   end
 

@@ -13,6 +13,9 @@ defmodule Elixirdo.Base.Utils.Macro do
     )
   end
 
+  def push(nil, block) do
+    normalize(block)
+  end
   def push(quote_one, block) do
     [quote_one|normalize(block)]
   end

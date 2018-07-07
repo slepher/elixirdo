@@ -1,15 +1,11 @@
 defmodule Elixirdo.Instance.MonadTrans.Except do
   alias Elixirdo.Instance.MonadTrans.Except, as: ExceptT
-  use Elixirdo.Instance.Either
 
-  defstruct [:value]
-
-  use Elixirdo.Typeclass.Monad
-  use Elixirdo.Base.Type
-  use Elixirdo.Base.Instance
+  use Elixirdo.Base
   use Elixirdo.Expand
-
-  deftype except_t(e, m, a) :: %ExceptT{value: m(Either.either(e, a))}
+  use Elixirdo.Typeclass.Monad
+  use Elixirdo.Typeclass.Monad.MonadFail
+  use Elixirdo.Instance.Either
 
   defmacro __using__(_) do
     quote do
@@ -18,6 +14,10 @@ defmodule Elixirdo.Instance.MonadTrans.Except do
     end
   end
 
+  defstruct [:value]
+
+  deftype except_t(e, m, a) :: %ExceptT{value: m(Either.either(e, a))}
+
   def new(m) do
     %ExceptT{value: m}
   end
@@ -25,6 +25,8 @@ defmodule Elixirdo.Instance.MonadTrans.Except do
   def run(%ExceptT{value: m}) do
     m
   end
+
+
 
   definstance functor(except_t(e, m), m: functor) do
     def fmap(f, except_t_a) do
@@ -88,6 +90,12 @@ defmodule Elixirdo.Instance.MonadTrans.Except do
           end
         end
       )
+    end
+  end
+
+  definstance monad_fail(except_t(e, m), m: monad) do
+    def fail(e) do
+      new(Monad.return(Either.fail(e), m))
     end
   end
 

@@ -1,10 +1,11 @@
 defmodule Elixirdo.Instance.MonadTrans.Maybe do
   alias Elixirdo.Instance.MonadTrans.Maybe, as: MaybeT
-  use Elixirdo.Instance.Maybe
 
   use Elixirdo.Base
   use Elixirdo.Expand
   use Elixirdo.Typeclass.Monad
+  use Elixirdo.Typeclass.Monad.MonadFail
+  use Elixirdo.Instance.Maybe
 
   defstruct [:value]
 
@@ -73,6 +74,12 @@ defmodule Elixirdo.Instance.MonadTrans.Maybe do
           end
         end
       )
+    end
+  end
+
+  definstance monad_fail(maybe_t(m), m: monad) do
+    def fail(_) do
+      Monad.return(Nothing.new(), m)
     end
   end
 

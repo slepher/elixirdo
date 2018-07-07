@@ -1,8 +1,19 @@
 defmodule Elixirdo.Instance.Either do
+  alias Elixirdo.Instance.Either.Left
+  alias Elixirdo.Instance.Either.Right
+
   use Elixirdo.Base
   use Elixirdo.Expand
-
   use Elixirdo.Typeclass.Monad
+  use Elixirdo.Typeclass.Monad.MonadFail
+
+  defmacro __using__(_) do
+    quote do
+      alias Elixirdo.Instance.Either
+      alias Elixirdo.Instance.Either.Right
+      alias Elixirdo.Instance.Either.Left
+    end
+  end
 
   defmodule Left do
     @type left(e) :: %Left{value: e}
@@ -31,31 +42,7 @@ defmodule Elixirdo.Instance.Either do
     end
   end
 
-  alias Elixirdo.Instance.Either.Left
-  alias Elixirdo.Instance.Either.Right
-
   deftype either(e, a) :: Left.left(e) | Right.right(a)
-
-  defmacro __using__(_) do
-    quote do
-      alias Elixirdo.Instance.Either
-      alias Elixirdo.Instance.Either.Right
-      alias Elixirdo.Instance.Either.Left
-    end
-  end
-
-  def either(fac, fbc) do
-    fn eab ->
-      case eab do
-        %Left{} = left_a ->
-          a = Left.run(left_a)
-          fac.(a)
-        %Right{} = right_b ->
-          b = Right.run(right_b)
-          fbc.(b)
-      end
-    end
-  end
 
   definstance functor(either(e)) do
     def fmap(_f, %Left{} = left_e) do
@@ -103,4 +90,24 @@ defmodule Elixirdo.Instance.Either do
       end
     end
   end
+
+  definstance monad_fail(either(e)) do
+    def fail(e) do
+      Left.new(e)
+    end
+  end
+
+  def either(fac, fbc) do
+    fn eab ->
+      case eab do
+        %Left{} = left_a ->
+          a = Left.run(left_a)
+          fac.(a)
+        %Right{} = right_b ->
+          b = Right.run(right_b)
+          fbc.(b)
+      end
+    end
+  end
+
 end

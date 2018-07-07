@@ -5,6 +5,8 @@ defmodule Elixirdo.Instance.Maybe do
 
   use Elixirdo.Typeclass.Monad
 
+  use Elixirdo.Typeclass.Monad.MonadFail
+
   defmacro __using__(_) do
     quote do
       alias Elixirdo.Instance.Maybe
@@ -12,6 +14,11 @@ defmodule Elixirdo.Instance.Maybe do
       alias Elixirdo.Instance.Maybe.Nothing
     end
   end
+
+  alias Elixirdo.Instance.Maybe.Just
+  alias Elixirdo.Instance.Maybe.Nothing
+
+  deftype maybe(a) :: %Just{value: a} | %Nothing{}
 
   defmodule Just do
     defstruct [:value]
@@ -32,11 +39,6 @@ defmodule Elixirdo.Instance.Maybe do
       %Nothing{}
     end
   end
-
-  alias Elixirdo.Instance.Maybe.Just
-  alias Elixirdo.Instance.Maybe.Nothing
-
-  deftype maybe(a) :: %Just{value: a} | %Nothing{}
 
   definstance functor(maybe) do
     def fmap(f, %Just{} = just_a) do
@@ -84,8 +86,10 @@ defmodule Elixirdo.Instance.Maybe do
     end
   end
 
-  def fail(_e, _ \\ :maybe) do
-    :nothing
+  definstance monad_fail(maybe) do
+    def fail(_e) do
+      Nothing.new()
+    end
   end
 
   def empty(_ \\ :maybe) do

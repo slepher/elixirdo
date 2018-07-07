@@ -1,6 +1,6 @@
 defmodule Monad.Instance.MonadTrans.Reader do
 
-  alias Monad.Instance.MonadTrans.Reader
+  alias Monad.Instance.MonadTrans.Reader, as: ReaderT
 
   use Elixirdo.Base
   use Elixirdo.Typeclass.Monad
@@ -9,23 +9,23 @@ defmodule Monad.Instance.MonadTrans.Reader do
 
   defstruct [:data]
 
-  deftype reader_t(r, m, a) :: %Reader{data: (r -> m(a))}
+  deftype reader_t(r, m, a) :: %ReaderT{data: (r -> m(a))}
 
-  def new_reader_t(data) do
-    %Reader{data: data}
+  def new(data) do
+    %ReaderT{data: data}
   end
 
-  def run_reader_t(%Reader{data: data}) do
+  def run(%ReaderT{data: data}) do
     data
   end
 
   def run(reader_t_a, r) do
-    (run_reader_t(reader_t_a)).(r)
+    (run(reader_t_a)).(r)
   end
 
   definstance functor reader_t(r, m), m: functor do
     def fmap(f, reader_t_a) do
-      new_reader_t(
+      new(
         fn r ->
           functor_a = run(reader_t_a, r)
           Functor.fmap(f, functor_a, m)
@@ -36,7 +36,7 @@ defmodule Monad.Instance.MonadTrans.Reader do
 
   definstance applicative reader_t(r, m), m: applicative do
     def pure(a) do
-      new_reader_t(
+      new(
         fn _ ->
           Applicative.pure(a, m)
         end
@@ -44,7 +44,7 @@ defmodule Monad.Instance.MonadTrans.Reader do
     end
 
     def ap(reader_t_f, reader_t_a) do
-      new_reader_t(
+      new(
         fn r ->
           applicative_f = run(reader_t_f, r)
           applicative_a = run(reader_t_a, r)
@@ -56,7 +56,7 @@ defmodule Monad.Instance.MonadTrans.Reader do
 
   definstance monad reader_t(r, m), m: monad do
     def bind(reader_t_a, afb) do
-      new_reader_t(
+      new(
         fn r ->
           monad m do
             a <- run(reader_t_a, r)
@@ -69,7 +69,7 @@ defmodule Monad.Instance.MonadTrans.Reader do
 
   definstance monad_trans reader_t(r, m) do
     def lift(monad_a) do
-      new_reader_t(
+      new(
         fn _ ->
           monad_a
         end
@@ -83,16 +83,16 @@ defmodule Monad.Instance.MonadTrans.Reader do
     end
 
     def ask() do
-      new_reader_t(fn r -> Monad.return(r, m) end)
+      new(fn r -> Monad.return(r, m) end)
     end
 
     def reader(f) do
-      new_reader_t(fn r -> Monad.return(f.(r), m) end)
+      new(fn r -> Monad.return(f.(r), m) end)
     end
   end
 
   def with_reader(f, reader_a) do
-    new_reader_t(fn r -> run(reader_a, f.(r)) end)
+    new(fn r -> run(reader_a, f.(r)) end)
   end
 
   def with_reader(f, reader_a, _m) do

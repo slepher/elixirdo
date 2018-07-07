@@ -26,8 +26,6 @@ defmodule Elixirdo.Instance.MonadTrans.Except do
     m
   end
 
-
-
   definstance functor(except_t(e, m), m: functor) do
     def fmap(f, except_t_a) do
       map(

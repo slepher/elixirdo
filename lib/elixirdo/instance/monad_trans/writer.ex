@@ -1,5 +1,5 @@
 defmodule Elixirdo.Instance.MonadTrans.Writer do
-  alias Elixirdo.Instance.MonadTrans.Writer
+  alias Elixirdo.Instance.MonadTrans.Writer, as: WriterT
 
   use Elixirdo.Base
   use Elixirdo.Typeclass.Monad
@@ -9,13 +9,13 @@ defmodule Elixirdo.Instance.MonadTrans.Writer do
 
   defstruct [:data]
 
-  deftype writer_t(w, m, a) :: %Writer{data: m({a, w()})}
+  deftype writer_t(w, m, a) :: %WriterT{data: m({a, w()})}
 
-  def new_writer_t(data) do
-    %Writer{data: data}
+  def new(data) do
+    %WriterT{data: data}
   end
 
-  def run_writer_t(%Writer{data: data}) do
+  def run(%WriterT{data: data}) do
     data
   end
 
@@ -32,7 +32,7 @@ defmodule Elixirdo.Instance.MonadTrans.Writer do
 
   definstance applicative(writer_t(w, m), m: applicative, w: monoid) do
     def pure(a) do
-      new_writer_t(Applicative.pure({a, Monoid.mempty(w)}, m))
+      new(Applicative.pure({a, Monoid.mempty(w)}, m))
     end
 
     def ap(writer_t_f, writer_t_a) do
@@ -40,18 +40,18 @@ defmodule Elixirdo.Instance.MonadTrans.Writer do
         {f.(a), Monoid.mappend(w1, w2, w)}
       end
 
-      applicative_fw = run_writer_t(writer_t_f)
-      applicative_aw = run_writer_t(writer_t_a)
-      Applicative.lift_a2(faw, applicative_fw, applicative_aw, m)
+      applicative_fw = run(writer_t_f)
+      applicative_aw = run(writer_t_a)
+      new(Applicative.lift_a2(faw, applicative_fw, applicative_aw, m))
     end
   end
 
   definstance monad(writer_t(w, m), m: monad, w: monoid) do
     def bind(writer_t_a, afb) do
-      new_writer_t(
+      new(
         monad m do
-          {a, w1} <- run_writer_t(writer_t_a)
-          {b, w2} <- run_writer_t(afb.(a))
+          {a, w1} <- run(writer_t_a)
+          {b, w2} <- run(afb.(a))
           Monad.return(b, Monoid.mappend(w1, w2, w))
         end
       )
@@ -60,17 +60,17 @@ defmodule Elixirdo.Instance.MonadTrans.Writer do
 
   definstance monad_trans(writer_t(w, m), m: monad, w: monoid) do
     def lift(monad_a) do
-      new_writer_t(Monad.lift_m(fn a -> {a, Monoid.mempty(w)} end, monad_a, m))
+      new(Monad.lift_m(fn a -> {a, Monoid.mempty(w)} end, monad_a, m))
     end
   end
 
   definstance monad_writer(writer_t(_w, m), m: monad, _w: monoid) do
     def tell(ws) do
-      new_writer_t(Monad.return({:ok, ws}, m))
+      new(Monad.return({:ok, ws}, m))
     end
 
     def writer({a, ws}) do
-      new_writer_t(Monad.return({a, ws}, m))
+      new(Monad.return({a, ws}, m))
     end
 
     def listen(writer_t_a) do
@@ -93,6 +93,6 @@ defmodule Elixirdo.Instance.MonadTrans.Writer do
   end
 
   def map(f, writer_t_a) do
-    new_writer_t(f.(run_writer_t(writer_t_a)))
+    new(f.(run(writer_t_a)))
   end
 end

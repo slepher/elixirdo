@@ -1,31 +1,24 @@
 defmodule Elixirdo.Instance.MonadTrans.State do
+  alias Elixirdo.Instance.MonadTrans.State, as: StateT
+
   use Elixirdo.Base
   use Elixirdo.Typeclass.Monad
   use Elixirdo.Typeclass.Monad.MonadState
   use Elixirdo.Typeclass.Monad.MonadTrans
 
-  alias Elixirdo.Instance.MonadTrans.State
 
   use Elixirdo.Expand
 
   defstruct [:data]
 
-  deftype state_t(s, m, a) :: %State{data: (s -> m({a, s}))}
+  deftype state_t(s, m, a) :: %StateT{data: (s -> m({a, s}))}
 
-  def new_state_t(data) do
-    %State{data: data}
+  def new(data) do
+    %StateT{data: data}
   end
 
-  def run_state_t(%State{data: inner}) do
+  def run(%StateT{data: inner}) do
     inner
-  end
-
-  def run(state_t_a, state) do
-    run_state_t(state_t_a).(state)
-  end
-
-  def map(f, state_t_a) do
-    new_state_t(fn state -> f.(run(state_t_a, state)) end)
   end
 
   definstance functor(state_t(s, m), m: functor) do
@@ -45,7 +38,7 @@ defmodule Elixirdo.Instance.MonadTrans.State do
     end
 
     def ap(state_t_f, state_t_a) do
-      new_state_t(fn s ->
+      new(fn s ->
         monad m do
           {f, ns} <- run(state_t_f, s)
           {a, nns} <- run(state_t_a, ns)
@@ -57,7 +50,7 @@ defmodule Elixirdo.Instance.MonadTrans.State do
 
   definstance monad(state_t(s, m), m: monad) do
     def bind(state_t_a, afb) do
-      new_state_t(fn s ->
+      new(fn s ->
         monad m do
           {a, ns} <- run(state_t_a, s)
           run(afb.(a), ns)
@@ -68,7 +61,7 @@ defmodule Elixirdo.Instance.MonadTrans.State do
 
   definstance monad_trans(state_t(s, m), m: monad) do
     def lift(monad_a) do
-      new_state_t(fn s ->
+      new(fn s ->
         Monad.lift_m(fn a -> {a, s} end, monad_a, m)
       end)
     end
@@ -80,6 +73,14 @@ defmodule Elixirdo.Instance.MonadTrans.State do
     end
   end
 
+  def run(state_t_a, state) do
+    run(state_t_a).(state)
+  end
+
+  def map(f, state_t_a) do
+    new(fn state -> f.(run(state_t_a, state)) end)
+  end
+
   def eval(state_t_a, state, m \\ :monad) do
     fn {a, _} -> a end |> Monad.lift_m(run(state_t_a, state), m)
   end
@@ -89,7 +90,7 @@ defmodule Elixirdo.Instance.MonadTrans.State do
   end
 
   defp do_state(f, m) do
-    new_state_t(fn state ->
+    new(fn state ->
       Monad.return(f.(state), m)
     end)
   end

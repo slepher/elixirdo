@@ -157,18 +157,6 @@ defmodule Elixirdo.Base.Typeclass do
     callback.([], [])
   end
 
-  def unzip(zipped) do
-    unzip(zipped, [], [])
-  end
-
-  def unzip([], acca, accb) do
-    {:lists.reverse(acca), :lists.reverse(accb)}
-  end
-
-  def unzip([{a, b} | t], acca, accb) do
-    unzip(t, [a | acca], [b | accb])
-  end
-
   def mapping_arguments(args_with_lens_attrs, class_param, do: block) do
     args_with_lens_attrs = args_with_lens_attrs |> Enum.filter(fn {_, attrs} -> attrs != [] end)
 
@@ -301,28 +289,6 @@ defmodule Elixirdo.Base.Typeclass do
            true
        end)}
     end)
-  end
-
-  def first_typeclass_offsets([]) do
-    []
-  end
-
-  def first_typeclass_offsets(arguments_attributes) do
-    :lists.foldl(
-      fn n, acc ->
-        attributes = :lists.nth(n, arguments_attributes)
-
-        case attributes do
-          [] ->
-            acc
-
-          _ ->
-            [n | acc]
-        end
-      end,
-      [],
-      :lists.reverse(Enum.to_list(1..length(arguments_attributes)))
-    )
   end
 
   def trans_lens_attrs_vars(args_with_lens_attrs, class_name, class_param) do

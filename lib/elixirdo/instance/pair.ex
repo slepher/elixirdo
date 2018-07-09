@@ -1,7 +1,7 @@
 defmodule Elixirdo.Instance.Pair do
 
   use Elixirdo.Base
-  use Elixirdo.Typeclass.Monad
+  use Elixirdo.Typeclass.Monad, import_typeclass: true
 
   alias Elixirdo.Typeclass.Monoid
 

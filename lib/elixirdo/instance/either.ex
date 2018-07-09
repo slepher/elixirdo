@@ -4,8 +4,8 @@ defmodule Elixirdo.Instance.Either do
 
   use Elixirdo.Base
   use Elixirdo.Expand
-  use Elixirdo.Typeclass.Monad
-  use Elixirdo.Typeclass.Monad.MonadFail
+  use Elixirdo.Typeclass.Monad, import_typeclass: true
+  use Elixirdo.Typeclass.Monad.Fail, import_typeclass: true
 
   defmacro __using__(_) do
     quote do

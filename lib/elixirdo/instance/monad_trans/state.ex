@@ -2,9 +2,9 @@ defmodule Elixirdo.Instance.MonadTrans.State do
   alias Elixirdo.Instance.MonadTrans.State, as: StateT
 
   use Elixirdo.Base
-  use Elixirdo.Typeclass.Monad
-  use Elixirdo.Typeclass.Monad.MonadState
-  use Elixirdo.Typeclass.Monad.MonadTrans
+  use Elixirdo.Typeclass.Monad, import_typeclass: true
+  use Elixirdo.Typeclass.Monad.State, import_typeclass: true
+  use Elixirdo.Typeclass.Monad.Trans, import_typeclass: true
 
 
   use Elixirdo.Expand

@@ -1,7 +1,7 @@
 defmodule MonadTrans.StateTest do
   use ExUnit.Case
+  use Elixirdo.Typeclass.Monad.State
   alias Elixirdo.Instance.MonadTrans.State
-  alias Elixirdo.Typeclass.Monad.MonadState
   alias Elixirdo.Base.Undetermined
   alias Elixirdo.Instance.Either
 

@@ -2,10 +2,11 @@ defmodule Elixirdo.Instance.MonadTrans.Writer do
   alias Elixirdo.Instance.MonadTrans.Writer, as: WriterT
 
   use Elixirdo.Base
-  use Elixirdo.Typeclass.Monad
-  use Elixirdo.Typeclass.Monad.MonadWriter
-  use Elixirdo.Typeclass.Monad.MonadTrans
-  use Elixirdo.Typeclass.Monoid
+  use Elixirdo.Expand
+  use Elixirdo.Typeclass.Monad, import_typeclass: true
+  use Elixirdo.Typeclass.Monad.Writer, import_typeclass: true
+  use Elixirdo.Typeclass.Monad.Trans, import_typeclass: true
+  use Elixirdo.Typeclass.Monoid, import_typeclass: true
 
   defstruct [:data]
 
@@ -19,7 +20,7 @@ defmodule Elixirdo.Instance.MonadTrans.Writer do
     data
   end
 
-  definstance functor(writer_t(_w, m), m: functor, _w: monoid) do
+  definstance functor(writer_t(w, m), m: functor) do
     def fmap(f, writer_t_a) do
       map(
         fn functor_a ->

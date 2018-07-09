@@ -1,7 +1,7 @@
 defmodule Elixirdo.Instance.Identity do
   use Elixirdo.Base.Type
   use Elixirdo.Base.Instance
-  use Elixirdo.Typeclass.Monad
+  use Elixirdo.Typeclass.Monad, import_typeclass: true
   use Elixirdo.Expand
 
   alias Elixirdo.Instance.Identity

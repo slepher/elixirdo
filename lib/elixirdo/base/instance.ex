@@ -69,7 +69,14 @@ defmodule Elixirdo.Base.Instance do
     type_fun = Keyword.get(Module.get_attribute(module, type_name), :type_fun)
     type_extends = Module.get_attribute(module, :type_extends)
     type_arguments = ignore_non_typeclass(type_arguments, type_extends)
-    type_pattern = type_fun.(type_arguments)
+
+    type_pattern =
+      case Utils.Macro.var_used(type_name, block) do
+        true ->
+          quote do: unquote(type_fun.(type_arguments)) = unquote(Macro.var(type_name, nil))
+        false ->
+          type_fun.(type_arguments)
+      end
 
     Utils.Macro.update_attribute(module, :functions, fn functions ->
       :ordsets.add_element({name, arity + 1}, functions)

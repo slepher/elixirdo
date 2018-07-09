@@ -3,9 +3,8 @@ defmodule Elixirdo.Instance.Maybe do
   use Elixirdo.Expand
   alias Elixirdo.Base.Undetermined
 
-  use Elixirdo.Typeclass.Monad
-
-  use Elixirdo.Typeclass.Monad.MonadFail
+  use Elixirdo.Typeclass.Monad, import_typeclass: true
+  use Elixirdo.Typeclass.Monad.Fail, import_typeclass: true
 
   defmacro __using__(_) do
     quote do

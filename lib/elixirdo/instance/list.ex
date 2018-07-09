@@ -2,8 +2,8 @@ defmodule Elixirdo.Instance.List do
   use Elixirdo.Base
   use Elixirdo.Expand
 
-  use Elixirdo.Typeclass.Monad
-  use Elixirdo.Typeclass.Monoid
+  use Elixirdo.Typeclass.Monad, import_typeclass: true
+  use Elixirdo.Typeclass.Monoid, import_typeclass: true
   use Elixirdo.Typeclass.Foldable
   use Elixirdo.Typeclass.Traversable
 

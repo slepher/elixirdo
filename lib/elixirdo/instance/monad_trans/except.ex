@@ -1,11 +1,11 @@
 defmodule Elixirdo.Instance.MonadTrans.Except do
-  alias Elixirdo.Instance.MonadTrans.Except, as: ExceptT
 
   use Elixirdo.Base
-  use Elixirdo.Expand
-  use Elixirdo.Typeclass.Monad
-  use Elixirdo.Typeclass.Monad.MonadFail
+  use Elixirdo.Typeclass.Monad, import_typeclass: true
+  use Elixirdo.Typeclass.Monad.Fail, import_typeclass: true
   use Elixirdo.Instance.Either
+
+  alias Elixirdo.Instance.MonadTrans.Except, as: ExceptT
 
   defmacro __using__(_) do
     quote do

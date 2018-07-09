@@ -1,12 +1,11 @@
 defmodule Elixirdo.Instance.MonadTrans.Cont do
-  alias Elixirdo.Instance.MonadTrans.Cont, as: ContT
-  use Elixirdo.Base.Type
-  use Elixirdo.Base.Instance
-  use Elixirdo.Typeclass.Monad
-  use Elixirdo.Typeclass.Monad.MonadTrans
-  use Elixirdo.Typeclass.Monad.MonadCont
 
-  use Elixirdo.Expand
+  use Elixirdo.Base
+  use Elixirdo.Typeclass.Monad, import_typeclass: true
+  use Elixirdo.Typeclass.Monad.Trans, import_typeclass: true
+  use Elixirdo.Typeclass.Monad.Cont, import_typeclass: true
+
+  alias Elixirdo.Instance.MonadTrans.Cont, as: ContT
 
   defstruct [:data]
 

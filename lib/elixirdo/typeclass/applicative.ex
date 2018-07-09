@@ -2,11 +2,22 @@ defmodule Elixirdo.Typeclass.Applicative do
   use Elixirdo.Base
   use Elixirdo.Expand
 
-  defmacro __using__(_) do
+  defmacro __using__(opts) do
+    import_typeclass = Keyword.get(opts, :import_typeclass, false)
+
+    quoted_import =
+      case import_typeclass do
+        true ->
+          [quote(do: import_typeclass(Applicative.applicative()))]
+
+        false ->
+          []
+      end
+
     quote do
-      use Elixirdo.Typeclass.Functor
+      use Elixirdo.Typeclass.Functor, unquote(opts)
       alias Elixirdo.Typeclass.Applicative
-      import_typeclass Applicative.applicative()
+      unquote_splicing(quoted_import)
     end
   end
 

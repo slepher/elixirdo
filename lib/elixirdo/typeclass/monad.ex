@@ -6,12 +6,23 @@ defmodule Elixirdo.Typeclass.Monad do
 
   @type m(_m, _a) :: any()
 
-  defmacro __using__(_) do
+  defmacro __using__(opts) do
+    import_typeclass = Keyword.get(opts, :import_typeclass, false)
+
+    quoted_import =
+      case import_typeclass do
+        true ->
+          [quote(do: import_typeclass(Monad.monad()))]
+
+        false ->
+          []
+      end
+
     quote do
-      use Elixirdo.Typeclass.Applicative
+      use Elixirdo.Typeclass.Applicative, unquote(opts)
       use Elixirdo.Notation.Do
       alias Elixirdo.Typeclass.Monad
-      import_typeclass Monad.monad()
+      unquote_splicing(quoted_import)
     end
   end
 

@@ -1,6 +1,6 @@
 defmodule MonadTrans.WriterTest do
   use ExUnit.Case
-  use Elixirdo.Typeclass.Monad
+  use Elixirdo.Typeclass.Monad, import_typeclass: true
 
   alias Elixirdo.Instance.MonadTrans.Writer
   alias Elixirdo.Instance.Maybe

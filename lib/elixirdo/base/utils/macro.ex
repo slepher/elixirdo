@@ -1,5 +1,4 @@
 defmodule Elixirdo.Base.Utils.Macro do
-
   def rename_macro(from, to, block) do
     Macro.prewalk(
       block,
@@ -13,11 +12,29 @@ defmodule Elixirdo.Base.Utils.Macro do
     )
   end
 
+  def var_used(var, block) do
+    {_, used} =
+      Macro.prewalk(
+        block,
+        false,
+        fn
+          {^var, _ctx, nil} = ast, _acc ->
+            {ast, true}
+
+          ast, acc ->
+            {ast, acc}
+        end
+      )
+
+    used
+  end
+
   def push(nil, block) do
     normalize(block)
   end
+
   def push(quote_one, block) do
-    [quote_one|normalize(block)]
+    [quote_one | normalize(block)]
   end
 
   def normalize({:__block__, _, inner}), do: inner
@@ -78,7 +95,6 @@ defmodule Elixirdo.Base.Utils.Macro do
   def gen_var(offset, prefix, module) do
     Macro.var(String.to_atom(prefix <> "_" <> offset), module)
   end
-
 
   defmacro set_attribute(key, value) do
     module = __CALLER__.module

@@ -1,9 +1,8 @@
 defmodule Elixirdo.Instance.MonadTrans.Cont do
 
   use Elixirdo.Base
-  use Elixirdo.Typeclass.Monad, import_typeclasses: true
   use Elixirdo.Typeclass.Monad.Trans, import_typeclasses: true
-  use Elixirdo.Typeclass.Monad.Cont, import_typeclasses: true
+  use Elixirdo.Typeclass.Monad.Cont, import_monad_cont: true
 
   alias Elixirdo.Instance.MonadTrans.Cont, as: ContT
 

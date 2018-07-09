@@ -2,10 +2,8 @@ defmodule Elixirdo.Instance.MonadTrans.Writer do
   alias Elixirdo.Instance.MonadTrans.Writer, as: WriterT
 
   use Elixirdo.Base
-  use Elixirdo.Expand
-  use Elixirdo.Typeclass.Monad, import_typeclasses: true
-  use Elixirdo.Typeclass.Monad.Writer, import_typeclasses: true
   use Elixirdo.Typeclass.Monad.Trans, import_typeclasses: true
+  use Elixirdo.Typeclass.Monad.Writer, import_monad_writer: true
   use Elixirdo.Typeclass.Monoid, import_typeclasses: true
 
   defstruct [:data]

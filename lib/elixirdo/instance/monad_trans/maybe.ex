@@ -3,8 +3,8 @@ defmodule Elixirdo.Instance.MonadTrans.Maybe do
 
   use Elixirdo.Base
   use Elixirdo.Expand
-  use Elixirdo.Typeclass.Monad, import_typeclasses: true
-  use Elixirdo.Typeclass.Monad.Fail, import_typeclasses: true
+  use Elixirdo.Typeclass.Monad.Trans, import_typeclasses: true
+  use Elixirdo.Typeclass.Monad.Fail, import_monad_fail: true
   use Elixirdo.Instance.Maybe
 
   defstruct [:value]
@@ -74,6 +74,12 @@ defmodule Elixirdo.Instance.MonadTrans.Maybe do
           end
         end
       )
+    end
+  end
+
+  definstance monad_trans(maybe_t(m), m: monad) do
+    def lift(monad_a) do
+      MaybeT.new(Monad.lift_m(fn a -> Just.new(a) end, monad_a, m))
     end
   end
 

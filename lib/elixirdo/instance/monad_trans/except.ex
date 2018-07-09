@@ -1,8 +1,8 @@
 defmodule Elixirdo.Instance.MonadTrans.Except do
 
   use Elixirdo.Base
-  use Elixirdo.Typeclass.Monad, import_typeclasses: true
-  use Elixirdo.Typeclass.Monad.Fail, import_typeclasses: true
+  use Elixirdo.Typeclass.Monad.Trans, import_typeclasses: true
+  use Elixirdo.Typeclass.Monad.Fail, import_monad_fail: true
   use Elixirdo.Instance.Either
 
   alias Elixirdo.Instance.MonadTrans.Except, as: ExceptT
@@ -88,6 +88,12 @@ defmodule Elixirdo.Instance.MonadTrans.Except do
           end
         end
       )
+    end
+  end
+
+  definstance monad_trans(except_t(e, m), m: monad) do
+    def lift(monad_a) do
+      ExceptT.new(Monad.lift_m(fn a -> Right.new(a) end, monad_a, m))
     end
   end
 

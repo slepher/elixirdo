@@ -1,6 +1,6 @@
 defmodule Elixirdo.Instance.MonadTrans.Maybe.MonadCont do
   use Elixirdo.Base
-  use Elixirdo.Typeclass.Monad.Cont, import_typeclass: true
+  use Elixirdo.Typeclass.Monad.Cont, import_monad_cont: true
   use Elixirdo.Instance.MonadTrans.Maybe
 
   import_type MaybeT.maybe_t()

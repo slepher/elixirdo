@@ -3,20 +3,9 @@ defmodule Elixirdo.Typeclass.Functor do
   use Elixirdo.Expand
 
   defmacro __using__(opts) do
-    import_typeclass = Keyword.get(opts, :import_typeclass, false)
-
-    quoted_import =
-      case import_typeclass do
-        true ->
-          [quote(do: import_typeclass(Functor.functor()))]
-
-        false ->
-          []
-      end
-
     quote do
       alias Elixirdo.Typeclass.Functor
-      unquote_splicing(quoted_import)
+      unquote_splicing(__using_import__(opts))
     end
   end
 

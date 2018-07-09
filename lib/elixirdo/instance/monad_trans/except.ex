@@ -1,8 +1,8 @@
 defmodule Elixirdo.Instance.MonadTrans.Except do
 
   use Elixirdo.Base
-  use Elixirdo.Typeclass.Monad, import_typeclass: true
-  use Elixirdo.Typeclass.Monad.Fail, import_typeclass: true
+  use Elixirdo.Typeclass.Monad, import_typeclasses: true
+  use Elixirdo.Typeclass.Monad.Fail, import_typeclasses: true
   use Elixirdo.Instance.Either
 
   alias Elixirdo.Instance.MonadTrans.Except, as: ExceptT

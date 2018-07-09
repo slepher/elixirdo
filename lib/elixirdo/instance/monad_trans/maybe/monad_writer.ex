@@ -1,8 +1,8 @@
 
   defmodule Elixirdo.Instance.MonadTrans.Maybe.MonadWriter do
     use Elixirdo.Base
-    use Elixirdo.Typeclass.Monad, import_typeclass: true
-    use Elixirdo.Typeclass.Monad.Writer, import_typeclass: true
+    use Elixirdo.Typeclass.Monad
+    use Elixirdo.Typeclass.Monad.Writer, import_monad_writer: true
     use Elixirdo.Instance.MonadTrans.Maybe
 
     import_type MaybeT.maybe_t()

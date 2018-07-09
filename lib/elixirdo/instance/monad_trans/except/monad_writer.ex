@@ -2,7 +2,7 @@
   defmodule Elixirdo.Instance.MonadTrans.Except.MonadWriter do
     use Elixirdo.Base
     use Elixirdo.Typeclass.Monad
-    use Elixirdo.Typeclass.Monad.Writer, import_typeclass: true
+    use Elixirdo.Typeclass.Monad.Writer, import_monad_writer: true
     use Elixirdo.Instance.MonadTrans.Except
 
     import_type ExceptT.except_t()

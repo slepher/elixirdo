@@ -37,9 +37,9 @@ defmodule Elixirdo.Base.Typeclass do
     Module.put_attribute(module, :typeclass_keyword, typeclass_keyword)
     Module.put_attribute(module, :functions, [])
     block = Elixirdo.Base.Utils.Macro.rename_macro(:def, :__defclass_def, block)
-
     quote do
       @elixirdo_typeclass unquote(class_name)
+      unquote(using_quote(module, class_name))
       unquote(block)
       Elixirdo.Base.Typeclass.typeclass_macro(unquote(class_name))
     end
@@ -111,6 +111,31 @@ defmodule Elixirdo.Base.Typeclass do
       end
 
       unquote_splicing(default_impl(name, class_param, def_spec, block))
+    end
+  end
+
+  def using_quote(module, typeclass) do
+    typeclass_key = String.to_atom("import_" <> Atom.to_string(typeclass))
+
+    quote do
+      def __using_import__(opts) do
+        module = unquote(module)
+        typeclass = unquote(typeclass)
+        import_typeclass = Keyword.get(opts, unquote(typeclass_key), false)
+        import_all_typeclass = Keyword.get(opts, :import_typeclasses, false)
+
+        case import_typeclass or import_all_typeclass do
+          true ->
+            [
+              quote do
+                import_typeclass unquote(module).unquote(typeclass)
+              end
+            ]
+
+          false ->
+            []
+        end
+      end
     end
   end
 

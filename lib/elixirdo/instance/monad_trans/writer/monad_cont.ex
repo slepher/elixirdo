@@ -1,6 +1,6 @@
 defmodule Elixirdo.Instance.MonadTrans.Writer.MonadCont do
   use Elixirdo.Base
-  use Elixirdo.Typeclass.Monad.Cont, import_typeclass: true
+  use Elixirdo.Typeclass.Monad.Cont, import_monad_cont: true
 
   alias Elixirdo.Instance.MonadTrans.Writer, as: WriterT
   alias Elixirdo.Typeclass.Monoid

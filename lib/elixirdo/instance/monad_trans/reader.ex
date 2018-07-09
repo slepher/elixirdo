@@ -3,9 +3,9 @@ defmodule Elixirdo.Instance.MonadTrans.Reader do
   alias Elixirdo.Instance.MonadTrans.Reader, as: ReaderT
 
   use Elixirdo.Base
-  use Elixirdo.Typeclass.Monad, import_typeclass: true
-  use Elixirdo.Typeclass.Monad.Trans, import_typeclass: true
-  use Elixirdo.Typeclass.Monad.Reader, import_typeclass: true
+  use Elixirdo.Typeclass.Monad, import_typeclasses: true
+  use Elixirdo.Typeclass.Monad.Trans, import_typeclasses: true
+  use Elixirdo.Typeclass.Monad.Reader, import_typeclasses: true
 
   defstruct [:data]
 

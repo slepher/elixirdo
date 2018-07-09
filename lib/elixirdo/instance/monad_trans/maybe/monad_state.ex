@@ -1,6 +1,6 @@
 defmodule Elixirdo.Instance.MonadTrans.Maybe.MonadState do
   use Elixirdo.Base
-  use Elixirdo.Typeclass.Monad.State, import_typeclass: true
+  use Elixirdo.Typeclass.Monad.State, import_monad_state: true
 
   alias Elixirdo.Instance.MonadTrans.Maybe, as: MaybeT
 

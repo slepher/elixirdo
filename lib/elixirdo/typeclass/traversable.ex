@@ -4,10 +4,10 @@ defmodule Elixirdo.Typeclass.Traversable do
 
   alias Elixirdo.Typeclass.Functor
 
-  defmacro __using__(_) do
+  defmacro __using__(opts) do
     quote do
       alias Elixirdo.Typeclass.Traversable
-      import_typeclass Traversable.traversable
+      unquote_splicing(__using_import__(opts))
     end
   end
 

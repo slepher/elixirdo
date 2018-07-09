@@ -1,7 +1,7 @@
 defmodule Elixirdo.Instance.MonadTrans.Except.MonadCont do
   use Elixirdo.Base
   use Elixirdo.Instance.MonadTrans.Except
-  use Elixirdo.Typeclass.Monad.Cont, import_typeclass: true
+  use Elixirdo.Typeclass.Monad.Cont, import_monad_cont: true
 
   import_type ExceptT.except_t()
 

@@ -5,24 +5,10 @@ defmodule Elixirdo.Typeclass.Monad.Reader do
   alias Elixirdo.Typeclass.Monad
 
   defmacro __using__(opts) do
-    import_typeclass = Keyword.get(opts, :import_typeclass, false)
-
-    quoted_import =
-      case import_typeclass do
-        true ->
-          [
-            quote do
-              import_typeclass MonadReader.monad_reader()
-            end
-          ]
-
-        false ->
-          []
-      end
-
     quote do
+      use Elixirdo.Typeclass.Monad, unquote(opts)
       alias Elixirdo.Typeclass.Monad.Reader, as: MonadReader
-      unquote_splicing(quoted_import)
+      unquote_splicing(__using_import__(opts))
     end
   end
 

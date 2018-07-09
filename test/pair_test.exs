@@ -1,6 +1,6 @@
 defmodule PairTest do
   use ExUnit.Case
-  use Elixirdo.Typeclass.Monad, import_typeclass: true
+  use Elixirdo.Typeclass.Monad, import_typeclasses: true
   alias Elixirdo.Instance.Pair
 
   doctest Pair

@@ -2,10 +2,10 @@ defmodule Elixirdo.Instance.List do
   use Elixirdo.Base
   use Elixirdo.Expand
 
-  use Elixirdo.Typeclass.Monad, import_typeclass: true
-  use Elixirdo.Typeclass.Monoid, import_typeclass: true
-  use Elixirdo.Typeclass.Foldable
-  use Elixirdo.Typeclass.Traversable
+  use Elixirdo.Typeclass.Monad, import_typeclasses: true
+  use Elixirdo.Typeclass.Monoid, import_monoid: true
+  use Elixirdo.Typeclass.Foldable, import_foldable: true
+  use Elixirdo.Typeclass.Traversable, import_traversable: true
 
   deftype anonymous(a) :: list(a), as: :list
 

@@ -1,11 +1,9 @@
 defmodule Elixirdo.Instance.MonadTrans.Cont.MonadReader do
   use Elixirdo.Base
-  use Elixirdo.Typeclass.Monad
-  use Elixirdo.Typeclass.Monad.Reader, import_typeclass: true
+  use Elixirdo.Typeclass.Monad.Reader, import_monad_reader: true
 
   alias Elixirdo.Instance.MonadTrans.Cont, as: ContT
 
-  import_typeclass MonadReader.monad_reader()
   import_type ContT.cont_t()
 
   definstance monad_reader(cont_t(s, m), m: monad_reader) do

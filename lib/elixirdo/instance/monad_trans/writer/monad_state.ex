@@ -1,6 +1,7 @@
 defmodule Elixirdo.Instance.MonadTrans.Writer.MonadState do
   use Elixirdo.Base
-  use Elixirdo.Typeclass.Monad.State, import_typeclass: true
+  use Elixirdo.Typeclass.Monad.State, import_monad_state: true
+
   alias Elixirdo.Instance.MonadTrans.Writer, as: WriterT
 
   import_type WriterT.writer_t()

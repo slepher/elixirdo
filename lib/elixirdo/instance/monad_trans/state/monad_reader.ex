@@ -1,7 +1,7 @@
 defmodule Elixirdo.Instance.MonadTrans.State.MonadReader do
   use Elixirdo.Base
   use Elixirdo.Typeclass.Monad
-  use Elixirdo.Typeclass.Monad.Reader, import_typeclass: true
+  use Elixirdo.Typeclass.Monad.Reader, import_monad_reader: true
 
   alias Elixirdo.Instance.MonadTrans.State, as: StateT
 

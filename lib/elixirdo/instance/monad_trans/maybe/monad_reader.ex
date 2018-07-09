@@ -1,6 +1,6 @@
 defmodule Elixirdo.Instance.MonadTrans.Maybe.MonadReader do
   use Elixirdo.Base
-  use Elixirdo.Typeclass.Monad.Reader, import_typeclass: true
+  use Elixirdo.Typeclass.Monad.Reader, import_monad_reader: true
 
   alias Elixirdo.Instance.MonadTrans.Maybe, as: MaybeT
 

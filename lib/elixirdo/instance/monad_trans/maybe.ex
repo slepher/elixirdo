@@ -3,8 +3,8 @@ defmodule Elixirdo.Instance.MonadTrans.Maybe do
 
   use Elixirdo.Base
   use Elixirdo.Expand
-  use Elixirdo.Typeclass.Monad, import_typeclass: true
-  use Elixirdo.Typeclass.Monad.Fail, import_typeclass: true
+  use Elixirdo.Typeclass.Monad, import_typeclasses: true
+  use Elixirdo.Typeclass.Monad.Fail, import_typeclasses: true
   use Elixirdo.Instance.Maybe
 
   defstruct [:value]

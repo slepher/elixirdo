@@ -1,7 +1,7 @@
 defmodule Elixirdo.Instance.MonadTrans.Reader.MonadWriter do
   use Elixirdo.Base
   use Elixirdo.Expand
-  use Elixirdo.Typeclass.Monad.Writer, import_typeclass: true
+  use Elixirdo.Typeclass.Monad.Writer, import_monad_writer: true
 
   alias Elixirdo.Instance.MonadTrans.Reader, as: ReaderT
 

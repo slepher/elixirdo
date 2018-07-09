@@ -1,6 +1,6 @@
 defmodule ListTest do
   use ExUnit.Case
-  use Elixirdo.Typeclass.Monad, import_typeclass: true
+  use Elixirdo.Typeclass.Monad, import_typeclasses: true
   doctest Elixirdo.Instance.List
 
   alias Elixirdo.Instance.Maybe

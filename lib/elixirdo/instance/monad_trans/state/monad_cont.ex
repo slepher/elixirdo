@@ -1,6 +1,6 @@
 defmodule Elixirdo.Instance.MonadTrans.State.MonadCont do
   use Elixirdo.Base
-  use Elixirdo.Typeclass.Monad.Cont, import_typeclass: true
+  use Elixirdo.Typeclass.Monad.Cont, import_monad_cont: true
 
   alias Elixirdo.Instance.MonadTrans.State, as: StateT
 

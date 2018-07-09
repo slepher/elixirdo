@@ -7,7 +7,6 @@ defmodule MonadTrans.StateTest do
 
   doctest State
 
-
   @tag timeout: 1000
   test "get" do
     m = MonadState.get()

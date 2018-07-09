@@ -1,6 +1,6 @@
 defmodule Elixirdo.Instance.MonadTrans.Reader.MonadFail do
   use Elixirdo.Base
-  use Elixirdo.Typeclass.Monad.Fail, import_typeclass: true
+  use Elixirdo.Typeclass.Monad.Fail, import_monad_fail: true
 
   import_type Elixirdo.Instance.MonadTrans.Reader.reader_t()
 

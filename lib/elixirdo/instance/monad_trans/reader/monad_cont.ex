@@ -1,6 +1,6 @@
 defmodule Elixirdo.Instance.MonadTrans.Reader.MonadCont do
   use Elixirdo.Base
-  use Elixirdo.Typeclass.Monad.Cont, import_typeclass: true
+  use Elixirdo.Typeclass.Monad.Cont, import_monad_cont: true
 
   alias Elixirdo.Instance.MonadTrans.Reader, as: ReaderT
 

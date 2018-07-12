@@ -2,81 +2,61 @@ defmodule Elixirdo.Base.Undetermined do
   alias Elixirdo.Base.Undetermined
   alias Elixirdo.Base.Generated
 
-  defstruct [:typeclass, :inner_function]
+  defstruct [:required_typeclass, :typeclass, :inner_function]
 
   def new(f, typeclass) do
-    case(Generated.is_typeclass(typeclass)) do
-      true ->
-        %Undetermined{typeclass: typeclass, inner_function: f}
+    new(f, typeclass, typeclass)
+  end
 
+  def new(f, required_typeclass, typeclass) do
+    case(Generated.is_typeclass(required_typeclass)) do
+      true ->
+        %Undetermined{required_typeclass: required_typeclass, typeclass: typeclass, inner_function: f}
       false ->
-        f.(typeclass)
+        f.(required_typeclass)
     end
   end
 
-  def type(ua, typeclass) do
-    check_type(fn _ma, type -> type end, ua, typeclass)
-  end
-
-  def run(ua, typeclass) do
-    check_type(fn ma, _type -> ma end, ua, typeclass)
-  end
-
-  def check_type(f, ua, typeclass) do
-    do_map(f, fn -> f.(ua, typeclass) end, ua, typeclass)
-  end
-
-  def map(f, ua, typeclass) do
-    do_map(f, fn -> new(fn type -> map(f, ua, type) end, typeclass) end, ua, typeclass)
-  end
-
-  def do_map(f, fs, %Undetermined{inner_function: uf}, typeclass) do
-    case(Generated.is_typeclass(typeclass)) do
-      true ->
-        fs.()
-
-      false ->
-        f.(uf.(typeclass), typeclass)
+  def type(undetermined_a, typeclass) do
+    case guess_type([undetermined_a], typeclass) do
+      nil -> typeclass
+      type -> type
     end
   end
 
-  def do_map(f, _fs, a, typeclass) do
-    case(Generated.is_typeclass(typeclass)) do
-      true ->
-        type = Generated.type(a)
-        f.(a, type)
-
-      false ->
-        f.(a, typeclass)
-    end
-  end
-
-  def map_list(f, [], typeclass) do
-    nf = fn type -> f.([], type) end
-    new(nf, typeclass)
-  end
-
-  def map_list(f, values, typeclass) do
+  def run(%Undetermined{inner_function: f} = undetermined_a, typeclass) do
     case Generated.is_typeclass(typeclass) do
-      true ->
-        do_map_list(f, values, typeclass, values)
-
-      false ->
-        f.(map_type(values, typeclass), typeclass)
+      true -> undetermined_a
+      false -> f.(typeclass)
     end
   end
 
-  defp do_map_list(f, [%Undetermined{}], typeclass, values) do
-    new(fn type -> map_list(f, values, type) end, typeclass)
+  def run(a, _typeclass) do
+    a
   end
 
-  defp do_map_list(f, [%Undetermined{} | t], typeclass, values) do
-    do_map_list(f, t, typeclass, values)
+  def map(f, undetermined_a, typeclass) do
+    map(f, undetermined_a, typeclass, typeclass)
   end
 
-  defp do_map_list(f, [a | _t], _typeclass, values) do
-    type = Generated.type(a)
-    f.(map_type(values, type), type)
+  def map(f, undetermined_a, typeclass, return_type) do
+    map_list(fn [a], type -> f.(a, type) end, [undetermined_a], typeclass, return_type)
+  end
+
+  def map_list(f, values, typeclass, return_type, new \\ true) do
+    case guess_type(values, typeclass) do
+      nil ->
+        case new do
+          true ->
+            new(fn type -> map_list(f, values, type, return_type) end, typeclass, return_type)
+
+          false ->
+            f.(values, typeclass)
+        end
+
+      type ->
+        f.(map_type(values, type), type)
+    end
   end
 
   def guess_type(as, type_or_typeclass) do

@@ -2,7 +2,8 @@ defmodule MonadTrans.WriterTest do
   use ExUnit.Case
   use Elixirdo.Typeclass.Monad
   use Elixirdo.Instance.Maybe
-  use Elixirdo.Instance.MonadTrans.Writer
+
+  alias Elixirdo.Instance.MonadTrans.Writer, as: WriterT
 
   doctest Elixirdo.Instance.MonadTrans.Writer
 

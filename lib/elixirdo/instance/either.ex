@@ -43,6 +43,26 @@ defmodule Elixirdo.Instance.Either do
 
   deftype either(e, a) :: Left.left(e) | Right.right(a)
 
+  def from_error({:ok, a}) do
+    Right.new(a)
+  end
+
+  def from_error({:error, reason}) do
+    Left.new(reason)
+  end
+
+  def from_error(:ok) do
+    Right.new({})
+  end
+
+  def to_error(%Right{} = right) do
+    {:ok, Right.run(right)}
+  end
+
+  def to_error(%Left{} = left) do
+    {:error, Left.run(left)}
+  end
+
   definstance functor(either(e)) do
     def fmap(_f, %Left{} = left_e) do
       left_e

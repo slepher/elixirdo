@@ -23,18 +23,22 @@ defmodule Elixirdo.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      type_expansion(),
+      with_umbrella(:type_expansion),
       {:dialyxir, "~> 0.5", only: [:dev], runtime: false}
       # {:dep_from_hexpm, "~> 0.3.0"},
       # {:dep_from_git, git: "https://github.com/elixir-lang/my_dep.git", tag: "0.1.0"},
     ]
   end
 
-  defp type_expansion() do
-    if(File.exists?("../type_expansion")) do
-      {:type_expansion, in_umbrella: true}
+  defp with_umbrella(project_name) do
+    with_umbrella(project_name, "slepher")
+  end
+
+  defp with_umbrella(project_name, user_name) do
+    if(File.exists?("../#{project_name}")) do
+      {project_name, [in_umbrella: true]}
     else
-      {:type_expansion, github: "slepher/type_expansion"}
+      {project_name, [github: "#{user_name}/#{project_name}"]}
     end
   end
 end

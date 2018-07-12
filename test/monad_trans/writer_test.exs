@@ -1,17 +1,15 @@
 defmodule MonadTrans.WriterTest do
   use ExUnit.Case
-  use Elixirdo.Typeclass.Monad, import_typeclasses: true
-
-  alias Elixirdo.Instance.MonadTrans.Writer
-  alias Elixirdo.Instance.Maybe
+  use Elixirdo.Typeclass.Monad
+  use Elixirdo.Instance.Maybe
+  use Elixirdo.Instance.MonadTrans.Writer
 
   doctest Elixirdo.Instance.MonadTrans.Writer
 
-  use Elixirdo.Expand
   @moduletag timeout: 1000
 
   def writer_just(a, ws) do
-    Writer.new(Maybe.Just.new({a, ws}))
+    WriterT.new(Just.new({a, ws}))
   end
 
   test "fmap" do
@@ -27,5 +25,9 @@ defmodule MonadTrans.WriterTest do
     writer_t_b = writer_just(10, [:hello, :world])
     writer_t_c = Applicative.ap(writer_t_f, writer_t_a)
     assert writer_t_b == writer_t_c
+  end
+
+  test "bind" do
+
   end
 end

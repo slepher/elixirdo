@@ -432,38 +432,6 @@ defmodule Elixirdo.Base.Typeclass do
     end
   end
 
-  def match_u_arities(class_param, type_params, arity) do
-    :lists.reverse(
-      :lists.filter(
-        fn n ->
-          type_param = :lists.nth(n, type_params)
-          match_class_param(type_param, class_param)
-        end,
-        :lists.seq(1, arity)
-      )
-    )
-  end
-
-  def match_f_arities(class_param, type_params, arity) do
-    :lists.reverse(
-      :lists.filter(
-        fn n ->
-          type_param = :lists.nth(n, type_params)
-          match_class_param(type_param, class_param)
-        end,
-        :lists.seq(1, arity)
-      )
-    )
-  end
-
-  def match_class_param(%Utils.Type{type: type_param}, type_param) do
-    true
-  end
-
-  def match_class_param(_type_param, _class_param) do
-    false
-  end
-
   def extract_elixirdo_typeclasses(paths) do
     classes =
       Utils.File.extract_matching_by_attribute(paths, 'Elixir.', fn _module, attributes ->

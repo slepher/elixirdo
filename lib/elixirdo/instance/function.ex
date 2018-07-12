@@ -70,7 +70,7 @@ defmodule Elixirdo.Instance.Function do
     a
   end
 
-  def compose(f, g) do
+  def c(f, g) do
     fn x -> f.(g.(x)) end
   end
 end

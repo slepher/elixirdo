@@ -4,8 +4,8 @@ defmodule Elixirdo.Base.Undetermined do
 
   defstruct [:required_typeclass, :typeclass, :inner_function]
 
-  def new(f, typeclass) do
-    new(f, typeclass, typeclass)
+  def new(f, required_typeclass) do
+    new(f, required_typeclass, required_typeclass)
   end
 
   def new(f, required_typeclass, typeclass) do

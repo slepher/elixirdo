@@ -25,6 +25,18 @@ defmodule Elixirdo.Typeclass.Monad do
     def then(ma: m(a), mb: m(b)) :: m(b) do
       bind(ma, fn _ -> mb end, m)
     end
+
+    law left_identity(a: a, f: (a -> m(b))) :: m(b) do
+      return(a) |> bind(f) === f.(a)
+    end
+
+    law right_identity(m: m(a)) :: m(a) do
+      m |> bind(&return/1) === m
+    end
+
+    law associativity(m: m(a), f: (a -> m(b)), g: (b -> m(c))) :: m(c) do
+      m |> bind(f) |> bind(g) === m |> bind(fn a -> f.(a) |> bind(g) end)
+    end
   end
 
   def join(mma, monad \\ :monad) do

@@ -17,7 +17,8 @@ defmodule Elixirdo.Base.Typeclass do
           __defclass_def: 1,
           __defclass_def: 2,
           __defclass_def: 3,
-          import_typeclass: 1
+          import_typeclass: 1,
+          law: 2
         ]
 
       Module.register_attribute(__MODULE__, :elixirdo_typeclass, accumulate: false, persist: true)
@@ -53,6 +54,10 @@ defmodule Elixirdo.Base.Typeclass do
 
   defmacro import_typeclass(typeclass) do
     Utils.Macro.import_attribute_module(__CALLER__, typeclass)
+  end
+
+  defmacro law(_law_name_with_type, _block) do
+    nil
   end
 
   with_opts_and_do(:__defclass_def, :do_defclass_def)

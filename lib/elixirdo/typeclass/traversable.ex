@@ -29,12 +29,12 @@ defmodule Elixirdo.Typeclass.Traversable do
     # composition
     # traverse (Compose . fmap g . f) = Compose . fmap (traverse g) . traverse f
 
-    law naturality(t: (f(b) -> g(c)), f: (a -> f(b)), ta: t(a)) :: g(t(c)), f: applicative, g: applicative do
-      t.(traverse(f, ta)) === traverse(fn x -> t.(f.(x)) end, ta)
+    law naturality(t: (f(b) -> g(b)), f: (a -> f(b)), ta: t(a)) :: g(t(b)), f: applicative, g: applicative do
+      t.(traverse(f, ta, t)) === traverse(fn x -> t.(f.(x)) end, ta, t)
     end
 
     law identity(ta: t(a)) do
-      traverse(fn a -> Identity.new(a) end, ta) === Identity.new(ta)
+      traverse(fn a -> Identity.new(a) end, ta, t) === Identity.new(ta)
     end
 
     law composition(b_fc: (b -> f(c)), a_gb: (a -> g(b)), t: t(a)) :: t(Compose.compose(f, g, c)), f: applicative, g: applicative do

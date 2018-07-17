@@ -18,7 +18,8 @@ defmodule Elixirdo.Base.Typeclass do
           __defclass_def: 2,
           __defclass_def: 3,
           import_typeclass: 1,
-          law: 2
+          law: 2,
+          law: 3
         ]
 
       Module.register_attribute(__MODULE__, :elixirdo_typeclass, accumulate: false, persist: true)
@@ -57,6 +58,10 @@ defmodule Elixirdo.Base.Typeclass do
   end
 
   defmacro law(_law_name_with_type, _block) do
+    nil
+  end
+
+  defmacro law(_law_name_with_type, _opts, _block) do
     nil
   end
 

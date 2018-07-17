@@ -13,5 +13,17 @@ defmodule Elixirdo.Typeclass.Monoid do
     def mempty() :: m
 
     def mappend(m, m) :: m
+
+    law left_identity(x: m(a)) :: m(a) do
+      m |> mappend(mempty()) === m
+    end
+
+    law right_identity(x: m(a)) :: m(a) do
+      mempty() |> mappend(m) === m
+    end
+
+    law composition(x: m(a), y: m(a), z: m(a)) :: m(a) do
+      mappned(x, y) |> mappend(z) === x |> mappend(y, z)
+    end
   end
 end

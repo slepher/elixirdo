@@ -11,7 +11,11 @@ defmodule Elixirdo.Base.Instance do
   end
 
   defmacro definstance(expr, do: block) do
-    class_attr = Elixirdo.Base.Utils.Parser.parse_class(expr, __CALLER__)
+    do_definstance(__CALLER__, expr, block)
+  end
+
+  def do_definstance(caller, expr, block) do
+    class_attr = Elixirdo.Base.Utils.Parser.parse_class(expr, caller)
 
     [
       class: class_name,
@@ -25,7 +29,7 @@ defmodule Elixirdo.Base.Instance do
 
     extends = extends |> Enum.map(fn {k, v} -> {k, Utils.Parser.unwrap_term(v)} end)
 
-    module = __CALLER__.module
+    module = caller.module
     Module.put_attribute(module, :class_name, class_name)
     Module.put_attribute(module, :type_name, type_name)
     Module.put_attribute(module, :type_arguments, type_arguments)
@@ -33,8 +37,8 @@ defmodule Elixirdo.Base.Instance do
     Module.put_attribute(module, :functions, [])
     block = Elixirdo.Base.Utils.Macro.rename_macro(:def, :__definstance_def, block)
 
-    import_attrs(module, class_name, typeclass_module, __CALLER__.file, expr)
-    import_attrs(module, type_name, nil, __CALLER__.file, expr)
+    import_attrs(module, class_name, typeclass_module, caller.file, expr)
+    import_attrs(module, type_name, nil, caller.file, expr)
 
     quote do
       @elixirdo_instance [{unquote(class_name), unquote(type_name)}]

@@ -26,19 +26,19 @@ end
 
   use macro defclass to def typeclass
 
-```
+```elixir
   defclass functor(f) do
   end
 ```
 
-```
+```elixir
   defclass applicative(f, f: functor) do
   end
 ```
 
   use macro def inside defclass to def typeclass functions
 
-```
+```elixir
 defmodule Elixirdo.Typeclass.Functor do
   use Elixirdo.Base
 
@@ -48,7 +48,7 @@ defmodule Elixirdo.Typeclass.Functor do
 end
 ```
 
-```
+```elixir
   deflass applicative(f) do
     def pure(a) :: f(a)
     def ap(f((a -> b)), f(a)) :: f(b)
@@ -59,7 +59,7 @@ end
 
   key of Keyword in arguments represents variable used in default implementation
 
-```
+```elixir
   defclass applicative(f) do
     def pure(a) :: f(a)
 
@@ -82,7 +82,7 @@ end
 
   TODO: implementation of macro law is not ready yet.
 
-```
+```elixir
   defclass applicative(f, f: functor) do
     law identity(v: f(a)) :: f(a) do
       pure(Function.id()) |> ap(v) === v
@@ -102,14 +102,13 @@ end
   end
 ```
 
-
 ## type
 
   use macro deftype to def type
 
   like @type, but you could use typeclass function in type definition
 
-```
+```elixir
 defmodule Elixirdo.Instance.MonadTrans.Writer do
   use Elixirdo.Base
   alias Elixirdo.Instance.MonadTrans.Writer, as: WriterT
@@ -120,7 +119,7 @@ end
 
   all type matches %Writer{} is type writer_t
 
-```
+```elixir
 defmodule Elixirdo.Instance.Pair do
 
   use Elixirdo.Base
@@ -129,13 +128,13 @@ end
 ```
 
   all type matches {a, b} is type pair
-  TODO: 
+  TODO: prevent duplicated matches
 
 ## instance
 
   use macro definstance to def implementation of typeclass
 
-```
+```elixir
 defmodule Elixirdo.Instance.Pair do
   definstance functor(pair(a, b)) do
    def fmap(f, {m, a}) do
@@ -189,9 +188,45 @@ end
 
   even you already knew `b` is an identity
 
+# monad_transformer
+
+  deftype generate a function with `type_` plus name of type such as `type_reader_t(m)`
+
+  it's return value presents type of reader_t() could be used in typeclass functions like
+
+```elixir
+reader_t_state_t_identity = type_reader_t(type_state_t(:identity)) # {:reader_t, {:state_t, :identity}}
+Applicative.pure(10, reader_t_state_t_identity)
+```
+
+  `m: monad` mentioned in definstance could be used as variable in `def bind(reader_t_a, afb)` 
+
+```elixir
+defmodule Elixirdo.Instance.MonadTrans.Reader
+  use Elixrido.Base
+  use Elixirdo.Typeclass.Monad, import_monad: true
+
+  deftype reader_t(r, m, a) :: %ReaderT{data: (r -> m(a))}
+  definstance monad reader_t(r, m), m: monad do
+    def bind(reader_t_a, afb) do
+      new(
+        fn r ->
+          monad m do
+            a <- run(reader_t_a, r)
+            run(afb.(a), r)
+          end
+        end
+      )
+    end
+  end
+end
+```
+
+  so the inner type of monad_transformer could be passed 
+
 # monad do
 
-```
+```elixir
   monad m do
     a <- MonadReader.ask()
     Monad.return(a * 2)
@@ -200,6 +235,6 @@ end
 
 is same of
 
-```
+```elixir
   MonadReader.ask() |> Monad.bind(fn a -> Monad.return(a * 2) end, m)
 ```

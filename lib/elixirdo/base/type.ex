@@ -36,17 +36,28 @@ defmodule Elixirdo.Base.Type do
     if exported do
       elixirdo_types = Module.get_attribute(module, :elixirdo_type) || []
       Module.put_attribute(module, :elixirdo_type, [as | elixirdo_types])
-      elixirdo_type_fun_in_fun = type_fun(as, args, typeclasses, true)
-      elixirdo_type_fun_in_attr = type_fun(as, args, typeclasses, false)
+
+      typeclass_argument_offsets = typeclass_argument_offsets(args, typeclasses)
+
+      elixirdo_type_fun_in_fun = type_fun_in_fun(as, typeclass_argument_offsets)
+      elixirdo_type_fun_in_attr = type_fun_in_attr(as, typeclass_argument_offsets)
+
+      typeclass_arguments = typeclass_argument_offsets |> Enum.map(fn offset -> :lists.nth(offset, args) end)
+
       type_attributes = [name: as, type_name: name, arity: arity]
       type_attribute_in_attr = type_attributes ++ [type_fun: elixirdo_type_fun_in_attr]
       type_attribute_in_fun = type_attributes ++ [type_fun: elixirdo_type_fun_in_fun]
 
       exported_attribute = Utils.Macro.export_attribute(module, as, type_attribute_in_attr, type_attribute_in_fun)
 
+      type_fun_name = String.to_atom("type_" <> Atom.to_string(as))
+
       quote do
         @type unquote(spec)
         unquote(exported_attribute)
+        def unquote(type_fun_name)(unquote_splicing(typeclass_arguments)) do
+          unquote(elixirdo_type_fun_in_attr.(args))
+        end
       end
     else
       quote do: @type(unquote(spec))
@@ -101,6 +112,20 @@ defmodule Elixirdo.Base.Type do
         _ -> quote do: {unquote(type_name), unquote_splicing(args)}
       end
     end
+  end
+
+  def typeclass_argument_offsets(args, typeclasses) do
+    args_offsets =
+    case args do
+      [] -> []
+      _ -> Enum.to_list(1..length(args))
+    end
+
+    args_offsets
+    |> Enum.filter(fn n ->
+      type_arg_name = Utils.Parser.unwrap_term(:lists.nth(n, args))
+      Enum.member?(typeclasses, type_arg_name)
+    end)
   end
 
   def extract_typeclass(args, type_defs) do

@@ -10,12 +10,6 @@ defmodule Elixirdo.Base.Type do
     end
   end
 
-  defmacro deftype([{name, arity}]) do
-    quote do
-      @elixirdo_type {unquote(name), unquote(arity), true}
-    end
-  end
-
   defmacro deftype({:::, _, [{name, _, _args}, _type_defs]} = spec) do
     module = __CALLER__.module
     do_deftype(module, spec, as: name)

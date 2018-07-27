@@ -54,6 +54,7 @@ defmodule Elixirdo.Base.Type do
 
       quote do
         @type unquote(spec)
+        @elixirdo_type unquote(as)
         unquote(exported_attribute)
         def unquote(type_fun_name)(unquote_splicing(typeclass_arguments)) do
           unquote(elixirdo_type_fun_in_attr.(args))

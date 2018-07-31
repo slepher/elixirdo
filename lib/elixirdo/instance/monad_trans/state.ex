@@ -7,6 +7,14 @@ defmodule Elixirdo.Instance.MonadTrans.State do
 
   defstruct [:data]
 
+  defmodule State do
+    defstruct [:input, :pos, :user]
+  end
+
+  defmodule Pos do
+    defstruct [:file, :line, :column]
+  end
+
   deftype state_t(s, m, a) :: %StateT{data: (s -> m({a, s}))}
 
   def new(data) do

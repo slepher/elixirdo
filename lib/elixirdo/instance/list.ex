@@ -3,7 +3,7 @@ defmodule Elixirdo.Instance.List do
   use Elixirdo.Expand
 
   use Elixirdo.Typeclass.Monad, import_typeclasses: true
-  use Elixirdo.Typeclass.Monoid, import_monoid: true
+  use Elixirdo.Typeclass.Monoid, import_typeclasses: true
   use Elixirdo.Typeclass.Foldable, import_foldable: true
   use Elixirdo.Typeclass.Traversable, import_traversable: true
 
@@ -28,6 +28,12 @@ defmodule Elixirdo.Instance.List do
   definstance monad(list) do
     def bind(as, afb) do
       :lists.flatten(:lists.map(fn a -> afb.(a) end, as))
+    end
+  end
+
+  definstance semigroup(list) do
+    def sappend(list_a, list_b) do
+      list_a ++ list_b
     end
   end
 

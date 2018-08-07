@@ -38,5 +38,4 @@ defmodule Elixirdo.Typeclass.Monad.Writer do
   def lift_tell(w, monad_writer, monad_trans) do
     MonadTrans.lift(tell(w, monad_writer), monad_trans)
   end
-
 end

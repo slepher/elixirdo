@@ -4,7 +4,7 @@ defmodule Elixirdo.Typeclass.Monad do
 
   alias Elixirdo.Typeclass.Applicative
 
-  @type m(_m, _a) :: any()
+  @type m(_, _) :: any()
 
   defmacro __using__(opts) do
     quote do

@@ -1,7 +1,7 @@
 defmodule Elixirdo.Base.Typeclass do
   alias Elixirdo.Base.Utils
 
-  @type class(_class, _arguments) :: any()
+  @type class(_, _) :: any()
 
   import Utils.Macro, only: [with_opts_and_do: 2]
 

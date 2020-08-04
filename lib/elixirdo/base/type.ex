@@ -136,9 +136,7 @@ defmodule Elixirdo.Base.Type do
                 quote do
                   Elixirdo.Base.Typeclass.class(unquote(type_var), unquote(arguments))
                 end
-
               {ast, [type | acc]}
-
             :error ->
               {ast, acc}
           end
@@ -160,7 +158,6 @@ defmodule Elixirdo.Base.Type do
         case attributes[:elixirdo_type] do
           nil ->
             nil
-
           types ->
             types
             |> Enum.map(fn name -> {module, name} end)

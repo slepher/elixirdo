@@ -1,7 +1,9 @@
 defmodule Elixirdo.Base.Typeclass do
   alias Elixirdo.Base.Utils
 
-  @type class(__, __) :: any()
+  ## use @type class(_, _) :: any will cause dialyzer_util:get_record_and_type_info(Core) return fail with error:
+  ## Type declaration for class does not have variables as parameters
+  @type class(_a, _b) :: any()
 
   import Utils.Macro, only: [with_opts_and_do: 2]
 
